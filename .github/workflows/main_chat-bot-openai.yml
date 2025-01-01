@@ -28,13 +28,13 @@ jobs:
           npm run test --if-present
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: zip chat-bot.zip ./* -r
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: release.zip
+          path: chat-bot.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -50,7 +50,7 @@ jobs:
           name: node-app
 
       - name: Unzip artifact for deployment
-        run: unzip release.zip
+        run: unzip chat-bot.zip
       
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
