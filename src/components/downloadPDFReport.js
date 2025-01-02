@@ -1,7 +1,19 @@
-const { jsPDF } = require('jspdf');
 const fs = require('fs');
 const path = require('path');
 const { getReportData } = require('./getReport');
+const { query } = require('../services/db');
+const { jsPDF } = require('jspdf');
+require('jspdf-autotable');
+
+async function getAllColumns() {
+    try {
+        const rawDetails = await query('PRAGMA table_info(rawDataTable)');
+        const columnNames = rawDetails.map(column => column.name);
+        return columnNames;
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
 
 function getUniqueFilePath(basePath, fileName) {
     const ext = path.extname(fileName);
@@ -19,38 +31,31 @@ function getUniqueFilePath(basePath, fileName) {
 
 async function downloadPDFReport(context, selectedValues) {
     const ReportFromTable = await getReportData(selectedValues);
+    const allColumns = await getAllColumns();
 
     try {
         const doc = new jsPDF();
 
-        // Set initial position
-        const x = 10;
-        let y = 20;
-
-        // Calculate the maximum width for each column based on the data
-        const columnHeaders = selectedValues.field === 'all' ? ['Policy Reference', 'Original Insured', 'Territory', 'Insured', 'Start Date', 'Expiry Date', 'Class of Business', 'Original Currency Code', 'Exchange Rate', 'Limit of Liability', '100% Gross Premium', 'Signed Line', 'Gross Premium Paid this Time', 'Gross Premium Paid this Time in Settlement Currency', 'Commission Percentage', 'Commission Amount in Original Currency', 'Commission Amount in Settlement Currency', 'Brokerage Percentage', 'Brokerage in Original Currency', 'Brokerage in Settlement Currency', 'Final Net Premium in Original Currency', 'Final Net Premium in Settlement Currency', 'Agreement Reference', 'Settlement Currency Code', 'Org or Personal', 'Insurer', 'Period', 'Year'] : selectedValues.field.split(',');
-        const maxWidths = columnHeaders.map(header => {
-            return Math.max(...ReportFromTable.map(row => doc.getTextWidth(String(row[header]))));
-        });
+        // Prepare column headers and rows
+        const columnHeaders = selectedValues.field === 'all' ? allColumns : selectedValues.field.split(',');
+        const tableData = ReportFromTable.map(row =>
+            columnHeaders.map(header => String(row[header] || ''))
+        );
 
         // Add Title
         doc.setFontSize(14);
-        doc.text('Report', x, y);
-        y += 10;
+        doc.text('Report', 10, 10);
 
-        // Set font size for the table headers
-        doc.setFontSize(12);
-        columnHeaders.forEach((header, i) => {
-            doc.text(header, x + (i === 0 ? 0 : maxWidths.slice(0, i).reduce((acc, width) => acc + width + 10, 0)), y);
-        });
-        y += 10;
-
-        // Add table rows
-        ReportFromTable.forEach((row) => {
-            columnHeaders.forEach((header, i) => {
-                doc.text(String(row[header]), x + (i === 0 ? 0 : maxWidths.slice(0, i).reduce((acc, width) => acc + width + 10, 0)), y);
-            });
-            y += 10;
+        // Add table using autoTable
+        doc.autoTable({
+            styles: {
+                cellPadding: 0.5,
+                fontSize: 3
+            },
+            head: [columnHeaders],
+            body: tableData,
+            startY: 20,
+            theme: 'grid'
         });
 
         // Save the PDF file

@@ -1,13 +1,5 @@
 const { query } = require('../services/db');
 
-function convertToDDMMYYYY(dateString) {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${ day }/${ month }/${ year }`;
-}
-
 async function getReportData(selectedValues) {
     try {
         const { period, riskCode, field } = selectedValues;
@@ -19,10 +11,15 @@ async function getReportData(selectedValues) {
         let dateFilter = '';
 
         if (period && period.startDate && period.endDate) {
-            const startDate = convertToDDMMYYYY(period.startDate);
-            const endDate = convertToDDMMYYYY(period.endDate);
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                return date.toISOString().split('T')[0];
+            };
 
-            dateFilter = `WHERE "Start Date" BETWEEN '${ startDate }' AND '${ endDate }'`;
+            const formattedStartDate = formatDate(period.startDate);
+            const formattedEndDate = formatDate(period.endDate);
+
+            dateFilter = `WHERE "Start Date" BETWEEN '${ formattedStartDate }' AND '${ formattedEndDate }'`;
         }
 
         if (riskCode?.class_of_business) {

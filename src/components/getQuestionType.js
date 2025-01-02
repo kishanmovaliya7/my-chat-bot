@@ -3,20 +3,23 @@ const { CardFactory } = require('botbuilder');
 async function getQuestionType(context) {
     const buttons = [
         {
-            type: 'imBack',
+            type: 'messageBack',
             title: 'Question on the data with an answer',
-            value: 'Data with an Answer'
+            value: 'q&a',
+            displayText: 'step1'
         },
         {
-            type: 'imBack',
+            type: 'messageBack',
             title: 'Report Generation',
-            value: 'Report'
+            value: 'report',
+            displayText: 'step1'
         }
     ];
     const heroCard = CardFactory.heroCard(
-        'Choose an option',
+        '',
         undefined,
-        buttons
+        buttons,
+        { text: 'Welcome to Fusion Assistant! \n\n How can I help you get started today?' }
     );
 
     await context.sendActivity({

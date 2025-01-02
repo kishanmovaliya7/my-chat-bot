@@ -3,26 +3,22 @@ const { CardFactory } = require('botbuilder');
 async function sendReportTypeOptions(context) {
     const card = {
         type: 'AdaptiveCard',
+        $schema: 'http://adaptivecards.io/schemas/adaptive-card',
+        version: '1.3',
         body: [
             {
-                type: 'TextBlock',
-                text: 'Of course! I can help generate reports based on Policy, Premium, or Claims data.\n\n Which dataset would you like to use?',
-                size: 'small'
-            },
-            {
-                type: 'TextBlock',
-                text: 'List to Choose From:',
-                size: 'medium'
-            },
-            {
+                label: 'Of Course! \n\n Zoe and Steve have taught me how to run reports on Policy, Premium and Claims data.\n\n Which would you like it compiled from?',
                 type: 'Input.ChoiceSet',
                 id: 'Report',
                 style: 'expanded',
+                isRequired: true,
+                errorMessage: 'Please select one or more datasets that you would like to compile from.',
                 isMultiSelect: false,
                 choices: [
                     {
                         title: 'Policy',
-                        value: 'Policy'
+                        value: 'Policy',
+                        displayText: 'step2'
                     },
                     {
                         title: 'Premium',
@@ -38,11 +34,12 @@ async function sendReportTypeOptions(context) {
         actions: [
             {
                 type: 'Action.Submit',
-                title: 'Submit'
+                title: 'Submit',
+                data: {
+                    step: 'step2'
+                }
             }
-        ],
-        $schema: 'http://adaptivecards.io/schemas/adaptive-card',
-        version: '1.3'
+        ]
     };
 
     const adaptiveCard = CardFactory.adaptiveCard(card);

@@ -7,38 +7,32 @@ async function createDatePickerCard() {
             {
                 type: 'TextBlock',
                 text: 'Please select the start and end dates for your report:',
-                weight: 'Bolder',
-                size: 'Medium'
-            },
-            {
-                type: 'TextBlock',
-                text: 'Start Date:',
-                weight: 'Bolder',
-                size: 'small'
+                wrap: true
             },
             {
                 type: 'Input.Date',
                 id: 'startDate',
-                placeholder: 'YYYY-MM-DD',
-                style: 'text'
-            },
-            {
-                type: 'TextBlock',
-                text: 'End Date:',
-                weight: 'Bolder',
-                size: 'small'
+                label: 'Start Date:',
+                style: 'text',
+                isRequired: true,
+                errorMessage: 'Please select Start Date'
             },
             {
                 type: 'Input.Date',
                 id: 'endDate',
-                placeholder: 'YYYY-MM-DD',
-                style: 'text'
+                label: 'End Date:',
+                style: 'text',
+                isRequired: true,
+                errorMessage: 'Please select End Date'
             }
         ],
         actions: [
             {
                 type: 'Action.Submit',
-                title: 'Submit Dates'
+                title: 'Submit Dates',
+                data: {
+                    step: 'step4'
+                }
             }
         ],
         $schema: 'http://adaptivecards.io/schemas/adaptive-card',

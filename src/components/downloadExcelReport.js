@@ -20,6 +20,7 @@ function getUniqueFilePath(basePath, fileName) {
 async function downloadExcelReport(context, selectedValues) {
     try {
         const ReportFromTable = await getReportData(selectedValues);
+
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('Report');
 

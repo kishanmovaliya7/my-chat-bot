@@ -1,7 +1,7 @@
 const { CardFactory } = require('botbuilder');
 const { query } = require('../services/db');
 
-async function getAllColumns(context) {
+async function getAllColumns() {
     try {
         const rawDetails = await query('PRAGMA table_info(rawDataTable)');
         const columnNames = rawDetails.map(column => column.name);
@@ -12,7 +12,7 @@ async function getAllColumns(context) {
 }
 
 async function selectFields(context) {
-    const fields = await getAllColumns(context);
+    const fields = await getAllColumns();
 
     const choices = fields.map(item => ({
         title: item,
@@ -26,9 +26,8 @@ async function selectFields(context) {
         body: [
             {
                 type: 'TextBlock',
-                text: 'Select Fields',
-                weight: 'Bolder',
-                size: 'medium'
+                text: 'I can remove data fields, please select if you want to choose fields to keep or fields to remove.',
+                wrap: true
             },
             {
                 type: 'Input.ChoiceSet',
@@ -36,13 +35,19 @@ async function selectFields(context) {
                 style: 'expanded',
                 isMultiSelect: true,
                 value: defaultSelectedValues,
+                label: 'fields:',
+                isRequired: true,
+                errorMessage: 'Please select field',
                 choices: choices
             }
         ],
         actions: [
             {
                 type: 'Action.Submit',
-                title: 'Submit'
+                title: 'Submit',
+                data: {
+                    step: 'step8'
+                }
             }
         ],
         $schema: 'http://adaptivecards.io/schemas/adaptive-card',
@@ -57,4 +62,4 @@ async function selectFields(context) {
     });
 }
 
-module.exports = { selectFields };
+module.exports = { selectFields, getAllColumns };
