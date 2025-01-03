@@ -1,5 +1,5 @@
 const { ActivityHandler, MemoryStorage, ConversationState, CardFactory } = require('botbuilder');
-const { sendReportTypeOptions } = require('./src/components/sendReportTypeOptions');
+const { sendReportTypeOptions, getSavedReportName } = require('./src/components/sendReportTypeOptions');
 const { getQuestionType } = require('./src/components/getQuestionType');
 const { createDatePickerCard } = require('./src/components/createDatePickerCard');
 const { sendRiskCodesOptions } = require('./src/components/sendRiskCodesOptions');
@@ -8,10 +8,11 @@ const { specificClassesCard, getOptionValue } = require('./src/components/specif
 const { selectFields, getAllColumns } = require('./src/components/selectFields');
 const { generateReport } = require('./src/components/generateReport');
 const { downloadPDFReport } = require('./src/components/downloadPDFReport');
-const { saveReport } = require('./src/components/saveReport');
+const { saveReport, getSavedReport, getSingleSavedReport } = require('./src/components/saveReport');
 const { downloadExcelReport } = require('./src/components/downloadExcelReport');
 const { getTableDataFromQuery } = require('./src/components/getTableDataFromQuery');
 const { AzureOpenAI } = require('openai');
+const { savedFileName } = require('./src/components/savedFileName');
 
 // Azure OpenAI Configuration
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
@@ -38,6 +39,7 @@ class EchoBot extends ActivityHandler {
         this.conversationStateAccessor = this.conversationState.createProperty('reportState');
         this.selectedValuesAccessor = this.conversationState.createProperty('selectedValues');
         this.optionFieldValueAccessor = this.conversationState.createProperty('fieldValues');
+        this.savedReportAccessor = this.conversationState.createProperty('savedReport');
 
         this.onMessage(async (context, next) => {
             try {
@@ -45,6 +47,7 @@ class EchoBot extends ActivityHandler {
                 const state = await this.conversationStateAccessor.get(context, { currentStep: 1 });
                 const selectedValues = await this.selectedValuesAccessor.get(context, {});
                 const fieldValues = await this.optionFieldValueAccessor.get(context, []);
+                const savedReport = await this.savedReportAccessor.get(context, {});
 
                 // Validate if the conversation should be reset
                 if (userMessage === 'restart' || userMessage === 'start over') {
@@ -86,8 +89,14 @@ class EchoBot extends ActivityHandler {
                             await context.sendActivity('You have selected Q&A. \n Ask your question, and Bot will assist you promptly.');
                             state.currentStep = 99;
                         } else if (ans?.toLowerCase() === 'report') {
-                            await sendReportTypeOptions(context);
-                            state.currentStep = 2;
+                            const data = await getSavedReport();
+                            if (!data && userMessage === 'new report') {
+                                await sendReportTypeOptions(context);
+                                state.currentStep = 2;
+                            } else {
+                                await getSavedReportName(context, data);
+                                state.currentStep = 12;
+                            } 
                         } else {
                             await context.sendActivity('Please select valid option');
                         }
@@ -257,15 +266,22 @@ class EchoBot extends ActivityHandler {
                                 messages: [
                                     {
                                         role: 'user',
-                                        content: `Question: choose an option
-                                        Option1: class of business
-                                        option2: original currency code
-                                        If user select option1 then return only "class of business".
-                                        If user selects option2 then return only "original currency code".
-                                        User answer is '${ userMessage }'
-                                        Return only one word based on the selection.
+                                        // content: `Question: choose an option
+                                        // Option1: class of business
+                                        // option2: original currency code
+                                        // If user select option1 then return only "class of business".
+                                        // If user selects option2 then return only "original currency code".
+                                        // User answer is '${ userMessage }'
+                                        // Return only one word based on the selection.
+                                        // `
+                                        content: `Choose an option:
+                                        Option 1: class of business
+                                        Option 2: original currency code
+                                        User answer: '${ userMessage }'
+                                        If user selects option 1, return "class of business".
+                                        If user selects option 2, return "original currency code".
+                                        Return one word based on the selection.
                                         `
-                                        // content: `Choose: Option1 -business, Option2 - currency. Selected: '${ userMessage }'. Return only one word based on the selection`
                                     }
                                 ],
                                 model: 'gpt-4',
@@ -307,29 +323,23 @@ class EchoBot extends ActivityHandler {
                                 messages: [
                                     {
                                         role: 'user',
-                                        content: `Question: choose an option
+                                        content: `Choose an option:
                                         ${ fieldOptions }
                                         ${ selectedOptions }
-                                        User answer is '${ userMessage }'
-                                        If user selects "select all", return all field options.
-                                        If user selects options, return them as a JSON object: e.g. '{ ${ selectedColumnType === 'Class of Business' ? 'class_of_business' : 'original_currency_code' }: "OIL & GAS PACKAGE, CAR" }'.
-                                        Return only one word based on the selection.
-                                        Only provide the field in the exact format as shown.
-                                        `
-                                        // content: `Choose an option:
-                                        // ${ fieldOptions }
-                                        // ${ selectedOptions }
-                                        // User answer: '${ userMessage }'
-                                        // If user selects "select all", return all options.
-                                        // If user selects options, return as JSON: '{ ${ selectedColumnType === 'Class of Business' ? 'class_of_business' : 'original_currency_code' }: "OIL & GAS PACKAGE, CAR" }'.
-                                        // Return only one word based on the selection in the exact format.
-                                        // `
+                                        User answer: '${ userMessage }'
+                                        Instructions:
+                                        - For "select all," return all options as JSON object.
+                                        - For multiple options: { "${ selectedColumnType === 'Class of Business' ? 'class_of_business' : 'original_currency_code' }": "OIL & GAS PACKAGE, CAR" }.
+                                        - For a single option: { "${ selectedColumnType === 'Class of Business' ? 'class_of_business' : 'original_currency_code' }": "OIL & GAS PACKAGE" }.
+                                        - Output only valid JSON object.`
                                     }
                                 ],
                                 model: 'gpt-4',
                                 max_tokens: 100
                             });
                             ans = openaiResponse.choices[0].message.content.trim();
+                            const rawResponse = ans.replace(/^```json|```$/g, '').trim();
+                            ans = JSON.parse(rawResponse);
                         }
 
                         if (ans) {
@@ -387,8 +397,10 @@ class EchoBot extends ActivityHandler {
                             ans = openaiResponse.choices[0].message.content.trim();
                         }
                         if (ans === 'yes') {
+                            const AllFields = await getAllColumns(selectedValues.reportType);
+                            const result = AllFields.join(', ');                            
+                            selectedValues.field = result;
                             await generateReport(context);
-                            selectedValues.field = 'all';
                             state.currentStep = 9;
                         } else if (ans === 'no') {
                             await selectFields(context, selectedValues.reportType);
@@ -418,19 +430,19 @@ class EchoBot extends ActivityHandler {
                                 messages: [
                                     {
                                         role: 'user',
-                                        content: `choose an option
-                                        ${ fieldOptions }
-                                        ${ selectedOptions }
-                                        User answer is '${ userMessage }'
-                                        If the user selects options, return them as a comma-separated string, e.g., 'Policy Reference, Original Insured'.
-                                        If the user deselects any option, exclude those from the returned string.
-                                        Return only the selected options in a comma-separated format, without any explanation. 
-                                        Example: If the user deselects 'Policy Reference' and 'Original Insured', return: 'Territory, Insured, Start Date, Expiry Date'.
-                                        Ensure that the list accurately reflects the options selected and deselected by the user, in the exact format as provided.
-                                        `
-                                        // content: `Choose an option: ${ fieldOptions } ${ selectedOptions }
-                                        // User's answer: '${ userMessage }'
-                                        // Return selected options as a comma-separated string, excluding any deselected ones. Example: 'Territory, Insured, Start Date' if 'Policy Reference' and 'Original Insured' are deselected.`
+                                        // content: `choose an option
+                                        // ${ fieldOptions }
+                                        // ${ selectedOptions }
+                                        // User answer is '${ userMessage }'
+                                        // If the user selects options, return them as a comma-separated string, e.g., 'Policy Reference, Original Insured'.
+                                        // If the user deselects any option, exclude those from the returned string.
+                                        // Return only the selected options in a comma-separated format, without any explanation.
+                                        // Example: If the user deselects 'Policy Reference' and 'Original Insured', return: 'Territory, Insured, Start Date, Expiry Date'.
+                                        // Ensure that the list accurately reflects the options selected and deselected by the user, in the exact format as provided.
+                                        // `
+                                        content: `Choose an option: ${ fieldOptions } ${ selectedOptions }
+                                        User's answer: '${ userMessage }'                                  
+                                        Return selected options as a comma-separated string, excluding any deselected ones. If a range (e.g., 1 to 10) is deselected, remove those fields from the selected values. Example: 'Territory, Insured, Start Date' if 'Policy Reference' and 'Original Insured' are deselected.`
                                     }
                                 ],
                                 model: 'gpt-4',
@@ -464,14 +476,19 @@ class EchoBot extends ActivityHandler {
                                 messages: [
                                     {
                                         role: 'user',
-                                        content: `Question: choose an option
-                                        Option1: pdf
-                                        Option2: excel
-                                        If user selects option1 then return only "pdf".
-                                        If user selects option2 then return only "excel".
-                                        User answer is '${ userMessage }'
-                                        Return only one word based on the selection.
-                                        `
+                                        // content: `Question: choose an option
+                                        // Option1: pdf
+                                        // Option2: excel
+                                        // If user selects option1 then return only "pdf".
+                                        // If user selects option2 then return only "excel".
+                                        // User answer is '${ userMessage }'
+                                        // Return only one word based on the selection.
+                                        // `
+                                        content: `Select:
+                                        pdf
+                                        excel
+                                        Input: ${ userMessage }
+                                        Return one word.`
                                     }
                                 ],
                                 model: 'gpt-4',
@@ -506,10 +523,68 @@ class EchoBot extends ActivityHandler {
                     break;
                 }
                 case 10: {
-                    if (userMessage === 'yes') {
-                        await saveReport(context, selectedValues);
-                    } else {
-                        await context.sendActivity('Thank you!');
+                    let ans = null;
+
+                    try {
+                        if (userMessage === 'yes' || userMessage === 'no') {
+                            ans = userMessage;
+                        } else {
+                            const openaiResponse = await client.chat.completions.create({
+                                messages: [
+                                    {
+                                        role: 'user',
+                                        // content: `Question: choose an option
+                                        // Option1: Yes
+                                        // Option2: No
+                                        // If user selects option1 then return only "yes".
+                                        // If user selects option2 then return only "no".
+                                        // User answer is '${ userMessage }'
+                                        // Return only one word based on the selection.
+                                        // `
+                                        content: `Select:
+                                        yes
+                                        no
+                                        Input: ${ userMessage }
+                                        Return one word.`
+                                    }
+                                ],
+                                model: 'gpt-4',
+                                max_tokens: 2
+                            });
+
+                            ans = openaiResponse.choices[0].message.content.trim();
+                        }
+                        if (ans === 'yes') {
+                            await savedFileName(context);
+                            state.currentStep = 11;
+                        } else if (ans === 'no') {
+                            await context.sendActivity('Thank you!');
+                        } else {
+                            await context.sendActivity('Invalid selection. Please choose "yes" or "no".');
+                        }
+                    } catch (error) {
+                        await context.sendActivity(
+                            'Sorry, We could not process with your answer.'
+                        );
+                    }
+                    break;
+                }
+                case 11: {
+                    const filename = `${ context.activity.value.filename }-${ new Date().getTime() }`;
+                    await saveReport(context,filename, selectedValues);
+                    break;
+                }
+                case 12: {
+                    const selectedSavedReport = context.activity.value.savedReport
+                    try {
+                       const singleData = await getSingleSavedReport(selectedSavedReport)                       
+                       await this.savedReportAccessor.set(context, singleData[0]);
+                       await sendReportTypeOptions(context);
+                        state.currentStep = 2; 
+                    } catch (error) {
+                        await context.sendActivity(
+                            'Sorry, We could not process with your answer.'
+                        );
                     }
                     break;
                 }
@@ -527,8 +602,11 @@ class EchoBot extends ActivityHandler {
                 await this.conversationState.saveChanges(context);
                 await this.selectedValuesAccessor.set(context, selectedValues);
                 await this.optionFieldValueAccessor.set(context, fieldValues);
+                await this.savedReportAccessor.set(context, savedReport);
                 await next();
             } catch (error) {
+                console.log('error',error);
+                
                 await context.sendActivity('An error occurred. Let\'s start over.');
                 await this.resetConversation(context, await this.conversationStateAccessor.get(context));
                 await getQuestionType(context);

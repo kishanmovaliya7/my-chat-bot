@@ -1,19 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { getReportData } = require('./getReport');
-const { query } = require('../services/db');
 const { jsPDF } = require('jspdf');
 require('jspdf-autotable');
-
-async function getAllColumns() {
-    try {
-        const rawDetails = await query('PRAGMA table_info(rawDataTable)');
-        const columnNames = rawDetails.map(column => column.name);
-        return columnNames;
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
 
 function getUniqueFilePath(basePath, fileName) {
     const ext = path.extname(fileName);
@@ -31,13 +20,12 @@ function getUniqueFilePath(basePath, fileName) {
 
 async function downloadPDFReport(context, selectedValues) {
     const ReportFromTable = await getReportData(selectedValues);
-    const allColumns = await getAllColumns();
 
     try {
         const doc = new jsPDF();
 
         // Prepare column headers and rows
-        const columnHeaders = selectedValues.field === 'all' ? allColumns : selectedValues.field.split(',');
+        const columnHeaders = selectedValues.field.split(',');
         const tableData = ReportFromTable.map(row =>
             columnHeaders.map(header => String(row[header] || ''))
         );

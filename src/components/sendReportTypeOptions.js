@@ -1,5 +1,50 @@
 const { CardFactory } = require('botbuilder');
 
+async function getSavedReportName(context, data) {
+    const choices = data.map(item => ({
+        title: item.Name,
+        value: item.Name
+    }));
+
+    const card = {
+        type: 'AdaptiveCard',
+        body: [
+            {
+                type: 'Input.ChoiceSet',
+                id: 'savedReport',
+                style: 'compact',
+                label: 'want to show Saved Report ?',
+                placeholder: 'Select Report',
+                choices: choices,
+                isMultiSelect: false
+            }
+        ],
+        actions: [
+            {
+                type: 'Action.Submit',
+                title: 'Create New Report',
+                data: 'new report'
+            },
+            {
+                type: 'Action.Submit',
+                title: 'Submit',
+                data: {
+                    step: 'step12'
+                }
+            }
+        ],
+        $schema: 'http://adaptivecards.io/schemas/adaptive-card',
+        version: '1.3'
+    };
+
+    const adaptiveCard = CardFactory.adaptiveCard(card);
+
+    await context.sendActivity({
+        type: 'message',
+        attachments: [adaptiveCard]
+    });
+}
+
 async function sendReportTypeOptions(context) {
     const card = {
         type: 'AdaptiveCard',
@@ -17,7 +62,7 @@ async function sendReportTypeOptions(context) {
                 choices: [
                     {
                         title: 'Policy',
-                        value: 'Policy',
+                        value: 'Policy'
                     },
                     {
                         title: 'Premium',
@@ -53,4 +98,4 @@ async function sendReportTypeOptions(context) {
     });
 }
 
-module.exports = { sendReportTypeOptions };
+module.exports = { sendReportTypeOptions, getSavedReportName };

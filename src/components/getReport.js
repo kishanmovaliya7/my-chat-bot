@@ -3,8 +3,9 @@ const { query } = require('../services/db');
 async function getReportData(selectedValues) {
     try {
         const { period, riskCode, field } = selectedValues;
+        console.log('selectedValues', selectedValues);
 
-        const fieldSelection = field === 'all' ? '*' : field.split(',')
+        const fieldSelection = field.split(',')
             .map(f => `"${ f.trim() }"`)
             .join(', ');
 
@@ -44,7 +45,7 @@ async function getReportData(selectedValues) {
                 : `WHERE "Original Currency Code" IN (${ formattedRiskCode } )`;
         }
 
-        const queryStr = `SELECT ${ fieldSelection } FROM rawDataTable ${ dateFilter }`;
+        const queryStr = `SELECT ${ fieldSelection } FROM ${ selectedValues.reportType } ${ dateFilter }`;
         const reportData = await query(queryStr);
         return reportData;
     } catch (error) {
