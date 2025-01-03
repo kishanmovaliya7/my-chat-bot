@@ -39,8 +39,7 @@ const createTable = async (tableName, columns) => {
 
     try {
         await query(sql);
-        await insertValues(tableName, columns);
-        console.log(`Table ${ tableName } created successfully.`);
+        return await insertValues(tableName, columns);
     } catch (err) {
         console.error('Error creating table:', err);
     }
@@ -57,10 +56,11 @@ const insertValues = async (tableName, values) => {
     }
 
     try {
-        await query(sql, Object.values(values));
-        console.log('Values inserted successfully.');
+        const response = await query(sql, Object.values(values));
+        console.log(response);
+        return response
     } catch (err) {
-        console.error('Error inserting values:', err);
+        return null;
     }
 };
 
@@ -72,10 +72,9 @@ const updateValues = async (tableName, values, filename) => {
     const queryParams = [...Object.values(values), filename];
 
     try {
-        await query(sql, queryParams);
-        console.log('Values updated successfully.');
+        return await query(sql, queryParams);
     } catch (err) {
-        console.error('Error updating values:', err);
+        return null
     }
 };
 
@@ -106,10 +105,9 @@ async function getSavedReport() {
 async function getSingleSavedReport(selectedSavedReport) {
     try {
         const singleData = await query('SELECT * FROM SavedReport WHERE Name = ?', [selectedSavedReport]);
-
+        console.log(singleData)
         return singleData;
     } catch (error) {
-        console.error('Error:', error);
         return null;
     }
 }
@@ -131,6 +129,7 @@ async function editReport(context, filename, selectedValues) {
         },
         scheduler: '',
         isDeleted: false,
+        isConfirm: false,
         emailLists: [],
         created_at: new Date()
     };
@@ -165,17 +164,22 @@ async function saveReport(context, filename, selectedValues) {
         scheduler: '',
         isDeleted: false,
         emailLists: [],
+        isConfirm: false,
         created_at: new Date()
     };
 
     const tableExists = await checkTableExists(tableName);
 
     if (!tableExists) {
-        await createTable(tableName, flattenedValues);
+        return await createTable(tableName, flattenedValues);
     } else {
-        await insertValues(tableName, flattenedValues);
+        return await insertValues(tableName, flattenedValues);
     }
-
-    await context.sendActivity(`${ filename } saved succesfully.`);
 }
-module.exports = { saveReport, getSavedReport, getSingleSavedReport, editReport };
+
+const updateReport = async (filename, field) => {
+    console.log(`update SavedReport set ${field} where Name = "${filename}"`)
+    const response = await query(`update SavedReport set ${field} where Name = "${filename}"`)
+    return response 
+}
+module.exports = { saveReport, getSavedReport, getSingleSavedReport, editReport, updateReport };

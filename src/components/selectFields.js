@@ -9,7 +9,7 @@ async function getAllColumns(reportType) {
         if(listOfTables?.length) {
             for (const table of listOfTables) {
                 const rawDetails = await query(`PRAGMA table_info(${table.trim()})`);
-                columnNames = [...columnNames, ...rawDetails.map(column => `${table}.${column.name}`)];
+                columnNames = [...columnNames, ...rawDetails.map(column => `${table}. ${column.name}`)];
             }
         }
         return columnNames;
@@ -42,7 +42,7 @@ async function selectFields(context, reportType) {
                 style: 'expanded',
                 isMultiSelect: true,
                 value: defaultSelectedValues,
-                label: 'fields:',
+                label: 'Fields:',
                 isRequired: true,
                 errorMessage: 'Please select field',
                 choices: choices

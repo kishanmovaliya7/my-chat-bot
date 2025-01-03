@@ -184,24 +184,19 @@ const addEntry = async (tableName, data) => {
   };
   
   const runAllCronJobs = async () => {
-    const sql = `SELECT * FROM savedReports WHERE isDeleted = 1`;
+    const sql = `SELECT * FROM SavedReport WHERE isDeleted = 0`;
     try {
       const data = await query(sql);
-      console.log("data", data);
   
       for (const iterator of data) {
         console.log("iterator.schedule", iterator.Name);
   
         const schedule = iterator.scheduler;
-        console.log(
-          `${schedule.minute || "*"} ${schedule.hours || "*"} ${
-            schedule.days || "*"
-          } ${schedule.month || "*"} ${schedule.week || "*"}`
-        );
         cron.schedule(
           `*/1 * * * *`,
           async () => {
-            await mailerFunction(iterator);
+            console.log('Called')
+            // await mailerFunction(iterator);
           },
           { name: `Schedule-${iterator.Name}`, timezone: "America/New_York" }
         );

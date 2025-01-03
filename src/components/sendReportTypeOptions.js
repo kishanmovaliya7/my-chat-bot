@@ -32,7 +32,7 @@ async function getSavedReportName(context, data) {
                 type: 'Action.Submit',
                 title: 'Submit',
                 data: {
-                    step: 'step12'
+                    step: 'step21'
                 }
             }
         ],
@@ -66,20 +66,17 @@ async function sendReportTypeOptions(context, reportName = '') {
                 choices: [
                     {
                         title: 'Policy',
-                        value: 'Policy'
+                        value: 'policy'
                     },
                     {
                         title: 'Premium',
-                        value: 'Premium'
+                        value: 'premium'
                     },
                     {
                         title: 'Claims',
-                        value: 'Claims'
-                    },
-                    {
-                        title: 'Combine',
-                        value: 'Combine'
+                        value: 'claims'
                     }
+                  
                 ]
             }
         ],

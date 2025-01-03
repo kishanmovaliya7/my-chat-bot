@@ -19,6 +19,8 @@ function getUniqueFilePath(basePath, fileName) {
 
 async function downloadExcelReport(context, selectedValues) {
     try {
+
+        console.log(JSON.parse(selectedValues))
         const ReportFromTable = await getReportData(selectedValues);
 
         const workbook = new ExcelJS.Workbook();

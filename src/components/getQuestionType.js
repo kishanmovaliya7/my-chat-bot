@@ -5,14 +5,15 @@ async function getQuestionType(context) {
         {
             type: 'messageBack',
             title: 'Question on the data with an answer',
-            value: 'q&a',
-            displayText: 'step1'
+            value: {step: 'step1', data:'q&a'},
+            displayText: 'Question and Answer',
         },
         {
             type: 'messageBack',
             title: 'Report Generation',
-            value: 'report',
-            displayText: 'step1'
+            text: 'Report Generation',
+            value: {step: 'step1', data:'report'},
+            displayText: 'Report Generation'
         }
     ];
     const heroCard = CardFactory.heroCard(

@@ -23,13 +23,13 @@ server.use(restify.plugins.bodyParser());
 const xlsxFilePath = path.join(__dirname, 'RawData.xlsx');
 const tableName = 'rawDataTable';
 
-importDataFromXlsx(xlsxFilePath, tableName)
-    .then(() => console.log('Import finished successfully.'))
-    .catch(err => console.log('Error importing data:', err));
+// importDataFromXlsx(xlsxFilePath, tableName)
+//     .then(() => console.log('Import finished successfully.'))
+//     .catch(err => console.log('Error importing data:', err));
 
    
 // addEntryToSaveReport();
-runAllCronJobs();
+// runAllCronJobs();
 
 server.listen(process.env.port || process.env.PORT || 3978, async() => {
     // const aa = await query('select * from savedReports;');

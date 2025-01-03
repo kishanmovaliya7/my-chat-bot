@@ -28,14 +28,16 @@ async function specificPeriod(context, ans) {
         {
             type: 'messageBack',
             title: 'Yes',
-            value: 'Yes',
-            displayText: 'step3'
+            text: 'Yes',
+            value: {step: 'step3', data: 'Yes'},
+            displayText: 'Yes'
         },
         {
             type: 'messageBack',
             title: 'No',
-            value: 'No',
-            displayText: 'step3'
+            text: 'No',
+            value: {step: 'step3', data: 'No'},
+            displayText: 'No'
         }
     ];
     const heroCard = CardFactory.heroCard(

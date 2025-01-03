@@ -1,11 +1,6 @@
 const nodemailer = require("nodemailer");
 var fs = require("fs");
-const smtpTransport = require("nodemailer-smtp-transport");
 const sqlite3 = require("sqlite3");
-var snowflake = require("snowflake-sdk");
-const moment = require("moment");
-const ftp = require("basic-ftp");
-const SFTP = require("ssh2-sftp-client");
 
 // function chunk(array, size) {
 //   const chunked_arr = [];

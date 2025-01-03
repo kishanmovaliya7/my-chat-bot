@@ -5,14 +5,16 @@ async function sendRiskCodesOptions(context) {
         {
             type: 'messageBack',
             title: 'Class of Business',
-            value: 'Class of Business',
-            displayText: 'step5'
+            text: 'Class of Business',
+            value: {step: 'step5', data: 'Class of Business'},
+            displayText: 'Class of Business'
         },
         {
             type: 'messageBack',
             title: 'Original Currency Code',
-            value: 'Original Currency Code',
-            displayText: 'step5'
+            text: 'Original Currency Code',
+            value: {step: 'step5', data: 'Original Currency Code'},
+            displayText: 'Original Currency Code'
         }
     ];
 

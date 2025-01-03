@@ -7,8 +7,8 @@ async function savedFileName(context) {
             {
                 type: 'Input.Text',
                 id: 'filename',
-                placeholder: 'enter saved report name',
-                label: 'enter file name:',
+                placeholder: 'Enter file name for future use',
+                label: 'Enter file Name:',
                 isRequired: true,
                 errorMessage: 'Please enter file name',
                 maxLength: 500
@@ -17,7 +17,8 @@ async function savedFileName(context) {
         actions: [
             {
                 type: 'Action.Submit',
-                title: 'OK'
+                title: 'OK',
+                data: {step: 'step11'}
             }
         ],
         $schema: 'http://adaptivecards.io/schemas/adaptive-card',

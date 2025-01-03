@@ -31,7 +31,7 @@ async function createDatePickerCard(filteredValue = {}) {
         actions: [
             {
                 type: 'Action.Submit',
-                title: 'Submit Dates',
+                title: 'Submit',
                 data: {
                     step: 'step4'
                 }

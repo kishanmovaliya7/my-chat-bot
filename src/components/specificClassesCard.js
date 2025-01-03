@@ -31,7 +31,7 @@ async function specificClassesCard(context, ans, parsedObject = '') {
                 id: ans.replace(/\s+/g, '_'),
                 style: 'expanded',
                 isMultiSelect: true,
-                value: `${ parsedObject.ClassOfBusiness }`,
+                value: `${ ans === 'business' ? parsedObject.ClassOfBusiness : parsedObject.OriginalCurrencyCode}`,
                 label: `${ ans.includes('business') ? 'Choose your preferred classes…' : 'Choose your preferred Currency…' }`,
                 isRequired: true,
                 errorMessage: 'Please select atleast one options',

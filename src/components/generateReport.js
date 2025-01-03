@@ -5,14 +5,16 @@ async function generateReport(context) {
         {
             type: 'messageBack',
             title: 'PDF',
-            value: 'PDF',
-            displayText: 'step9'
+            value: {step: 'step9', data:'PDF'},
+            text: 'PDF',
+            displayText: 'PDF'
         },
         {
             type: 'messageBack',
             title: 'Excel',
-            value: 'Excel',
-             displayText: 'step9'
+            text:"Excel",
+            value: {step: 'step9', data:'Excel'},
+            displayText: 'Excel'
         }
     ];
     const heroCard = CardFactory.heroCard(
