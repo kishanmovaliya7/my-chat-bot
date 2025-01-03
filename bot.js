@@ -48,8 +48,7 @@ class EchoBot extends ActivityHandler {
                 const state = await this.conversationStateAccessor.get(context, { currentStep: 1 });
                 const selectedValues = await this.selectedValuesAccessor.get(context, {});
                 const fieldValues = await this.optionFieldValueAccessor.get(context, []);
-                const savedReport = await this.savedReportAccessor.get(context, {});  
-                console.log('savedReport-------',savedReport.report);
+                const savedReport = await this.savedReportAccessor.get(context, {});
                               
 
                 // Validate if the conversation should be reset
@@ -581,6 +580,7 @@ class EchoBot extends ActivityHandler {
                 }
                 case 12: {
                     const selectedSavedReport = context?.activity?.value?.savedReport
+                    savedReport.filename = selectedSavedReport;
                     try {
                         if(selectedSavedReport){
                             const singleData = await getSingleSavedReport(selectedSavedReport) 
@@ -648,8 +648,7 @@ class EchoBot extends ActivityHandler {
                             ans = openaiResponse.choices[0].message.content.trim();
                         }
                         if (ans === 'save') {
-                            await editReport(context,savedReport.report.reportName, selectedValues);
-                            state.currentStep = 11;
+                            await editReport(context, savedReport.filename, selectedValues);
                         } else if (ans === 'cancel') {
                             await context.sendActivity('Thank you!');
                         } else {

@@ -64,21 +64,18 @@ const insertValues = async (tableName, values) => {
     }
 };
 
-const updateValues = async (tableName, values) => {
-    const columns = Object.keys(values).map(col => `\`${ col }\``).join(', ');
-    const placeholders = Object.keys(values).map(() => '?').join(', ');
-    const sql = `INSERT INTO ${ tableName } (${ columns }) VALUES (${ placeholders })`;
+const updateValues = async (tableName, values, filename) => {
+    const columns = Object.keys(values).map(col => `\`${ col }\` = ?`).join(', ');
 
-    // Serialize the reportFilter object before inserting
-    if (values.reportFilter) {
-        values.reportFilter = JSON.stringify(values.reportFilter);
-    }
+    const sql = `UPDATE ${ tableName } SET ${ columns } WHERE Name = ?`;
+
+    const queryParams = [...Object.values(values), filename];
 
     try {
-        await query(sql, Object.values(values));
-        console.log('Values inserted successfully.');
+        await query(sql, queryParams);
+        console.log('Values updated successfully.');
     } catch (err) {
-        console.error('Error inserting values:', err);
+        console.error('Error updating values:', err);
     }
 };
 
@@ -121,15 +118,15 @@ async function editReport(context, filename, selectedValues) {
     const { reportType, period, riskCode, field } = selectedValues;
     const tableName = 'SavedReport';
 
+    // Flatten the values to match the columns in the database
     const flattenedValues = {
-        Name: filename,
         reportName: reportType,
         email: 'test@gmail.com',
         reportFilter: {
-            StartDate: period ? period?.startDate : null,
-            EndDate: period ? period?.endDate : null,
-            ClassOfBusiness: riskCode ? riskCode?.class_of_business : null,
-            OriginalCurrencyCode: riskCode ? riskCode?.original_currency_code : null,
+            StartDate: period ? period.startDate : null,
+            EndDate: period ? period.endDate : null,
+            ClassOfBusiness: riskCode ? riskCode.class_of_business || riskCode.business : null,
+            OriginalCurrencyCode: riskCode ? riskCode.original_currency_code || riskCode.currency : null,
             Field: field
         },
         scheduler: '',
@@ -138,9 +135,16 @@ async function editReport(context, filename, selectedValues) {
         created_at: new Date()
     };
 
+    // Serialize the reportFilter object to store it as a JSON string
+    if (flattenedValues.reportFilter) {
+        flattenedValues.reportFilter = JSON.stringify(flattenedValues.reportFilter);
+    }
+
+    // Update the values in the database
     await updateValues(tableName, flattenedValues, filename);
 
-    await context.sendActivity(`${ filename } edited succesfully.`);
+    // Send a success message to the user
+    await context.sendActivity(`${ filename } edited successfully.`);
 }
 
 async function saveReport(context, filename, selectedValues) {
