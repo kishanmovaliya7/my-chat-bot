@@ -1,6 +1,6 @@
 const { CardFactory } = require('botbuilder');
 
-async function createDatePickerCard() {
+async function createDatePickerCard(filteredValue = {}) {
     return CardFactory.adaptiveCard({
         type: 'AdaptiveCard',
         body: [
@@ -13,6 +13,7 @@ async function createDatePickerCard() {
                 type: 'Input.Date',
                 id: 'startDate',
                 label: 'Start Date:',
+                value: `${ filteredValue.StartDate }`,
                 style: 'text',
                 isRequired: true,
                 errorMessage: 'Please select Start Date'
@@ -21,6 +22,7 @@ async function createDatePickerCard() {
                 type: 'Input.Date',
                 id: 'endDate',
                 label: 'End Date:',
+                value: `${ filteredValue.EndDate }`,
                 style: 'text',
                 isRequired: true,
                 errorMessage: 'Please select End Date'

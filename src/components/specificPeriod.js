@@ -32,7 +32,7 @@ async function specificPeriod(context, ans) {
             displayText: 'step3'
         },
         {
-            type: 'imBack',
+            type: 'messageBack',
             title: 'No',
             value: 'No',
             displayText: 'step3'

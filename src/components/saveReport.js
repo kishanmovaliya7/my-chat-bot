@@ -27,9 +27,9 @@ const inferColumnType = (value) => {
 
 const createTable = async (tableName, columns) => {
     // Serialize the reportFilter object to a JSON string
-    if (columns.reportFilter) {
-        columns.reportFilter = JSON.stringify(columns.reportFilter);
-    }
+    // if (columns.reportFilter) {
+    //     columns.reportFilter = JSON.stringify(columns.reportFilter);
+    // }
 
     const columnsDefinition = Object.entries(columns)
         .map(([colName, colValue]) => `\`${ colName }\` ${ inferColumnType(colValue) }`)
@@ -47,6 +47,24 @@ const createTable = async (tableName, columns) => {
 };
 
 const insertValues = async (tableName, values) => {
+    const columns = Object.keys(values).map(col => `\`${ col }\``).join(', ');
+    const placeholders = Object.keys(values).map(() => '?').join(', ');
+    const sql = `INSERT INTO ${ tableName } (${ columns }) VALUES (${ placeholders })`;
+
+    // Serialize the reportFilter object before inserting
+    if (values.reportFilter) {
+        values.reportFilter = JSON.stringify(values.reportFilter);
+    }
+
+    try {
+        await query(sql, Object.values(values));
+        console.log('Values inserted successfully.');
+    } catch (err) {
+        console.error('Error inserting values:', err);
+    }
+};
+
+const updateValues = async (tableName, values) => {
     const columns = Object.keys(values).map(col => `\`${ col }\``).join(', ');
     const placeholders = Object.keys(values).map(() => '?').join(', ');
     const sql = `INSERT INTO ${ tableName } (${ columns }) VALUES (${ placeholders })`;
@@ -99,6 +117,32 @@ async function getSingleSavedReport(selectedSavedReport) {
     }
 }
 
+async function editReport(context, filename, selectedValues) {
+    const { reportType, period, riskCode, field } = selectedValues;
+    const tableName = 'SavedReport';
+
+    const flattenedValues = {
+        Name: filename,
+        reportName: reportType,
+        email: 'test@gmail.com',
+        reportFilter: {
+            StartDate: period ? period?.startDate : null,
+            EndDate: period ? period?.endDate : null,
+            ClassOfBusiness: riskCode ? riskCode?.class_of_business : null,
+            OriginalCurrencyCode: riskCode ? riskCode?.original_currency_code : null,
+            Field: field
+        },
+        scheduler: '',
+        isDeleted: false,
+        emailLists: [],
+        created_at: new Date()
+    };
+
+    await updateValues(tableName, flattenedValues, filename);
+
+    await context.sendActivity(`${ filename } edited succesfully.`);
+}
+
 async function saveReport(context, filename, selectedValues) {
     const { reportType, period, riskCode, field } = selectedValues;
     const tableName = 'SavedReport';
@@ -130,4 +174,4 @@ async function saveReport(context, filename, selectedValues) {
 
     await context.sendActivity(`${ filename } saved succesfully.`);
 }
-module.exports = { saveReport, getSavedReport, getSingleSavedReport };
+module.exports = { saveReport, getSavedReport, getSingleSavedReport, editReport };

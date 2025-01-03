@@ -23,7 +23,10 @@ async function getSavedReportName(context, data) {
             {
                 type: 'Action.Submit',
                 title: 'Create New Report',
-                data: 'new report'
+                data: {
+                    step: 'step1',
+                    data: 'new report'
+                }
             },
             {
                 type: 'Action.Submit',
@@ -45,7 +48,7 @@ async function getSavedReportName(context, data) {
     });
 }
 
-async function sendReportTypeOptions(context) {
+async function sendReportTypeOptions(context, reportName = '') {
     const card = {
         type: 'AdaptiveCard',
         $schema: 'http://adaptivecards.io/schemas/adaptive-card',
@@ -56,6 +59,7 @@ async function sendReportTypeOptions(context) {
                 type: 'Input.ChoiceSet',
                 id: 'Report',
                 style: 'expanded',
+                value: `${ reportName }`,
                 isRequired: true,
                 errorMessage: 'Please select one or more datasets that you would like to compile from.',
                 isMultiSelect: true,

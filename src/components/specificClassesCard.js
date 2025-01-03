@@ -14,7 +14,7 @@ async function getOptionValue(ans) {
     }
 }
 
-async function specificClassesCard(context, ans) {
+async function specificClassesCard(context, ans, parsedObject = '') {
     const riskCodeSelected = ans.includes('business') ? 'Class of Business' : 'Original Currency Code';
 
     const options = await getOptionValue(ans);
@@ -31,6 +31,7 @@ async function specificClassesCard(context, ans) {
                 id: ans.replace(/\s+/g, '_'),
                 style: 'expanded',
                 isMultiSelect: true,
+                value: `${ parsedObject.ClassOfBusiness }`,
                 label: `${ ans.includes('business') ? 'Choose your preferred classes…' : 'Choose your preferred Currency…' }`,
                 isRequired: true,
                 errorMessage: 'Please select atleast one options',

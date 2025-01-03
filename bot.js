@@ -8,11 +8,12 @@ const { specificClassesCard, getOptionValue } = require('./src/components/specif
 const { selectFields, getAllColumns } = require('./src/components/selectFields');
 const { generateReport } = require('./src/components/generateReport');
 const { downloadPDFReport } = require('./src/components/downloadPDFReport');
-const { saveReport, getSavedReport, getSingleSavedReport } = require('./src/components/saveReport');
+const { saveReport, getSavedReport, getSingleSavedReport, editReport } = require('./src/components/saveReport');
 const { downloadExcelReport } = require('./src/components/downloadExcelReport');
 const { getTableDataFromQuery } = require('./src/components/getTableDataFromQuery');
 const { AzureOpenAI } = require('openai');
 const { savedFileName } = require('./src/components/savedFileName');
+const { saveOptions, editOptions } = require('./src/components/saveReportOption');
 
 // Azure OpenAI Configuration
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
@@ -47,7 +48,9 @@ class EchoBot extends ActivityHandler {
                 const state = await this.conversationStateAccessor.get(context, { currentStep: 1 });
                 const selectedValues = await this.selectedValuesAccessor.get(context, {});
                 const fieldValues = await this.optionFieldValueAccessor.get(context, []);
-                const savedReport = await this.savedReportAccessor.get(context, {});
+                const savedReport = await this.savedReportAccessor.get(context, {});  
+                console.log('savedReport-------',savedReport.report);
+                              
 
                 // Validate if the conversation should be reset
                 if (userMessage === 'restart' || userMessage === 'start over') {
@@ -85,19 +88,24 @@ class EchoBot extends ActivityHandler {
                             });
                             ans = openaiResponse.choices[0].message.content.trim();
                         }
-                        if (ans?.toLowerCase() === 'q&a') {
+
+                        if(context?.activity?.value?.data === 'new report'){
+                            await sendReportTypeOptions(context);
+                            savedReport.report ={}
+                            state.currentStep = 2;
+                        } else if (ans?.toLowerCase() === 'q&a') {
                             await context.sendActivity('You have selected Q&A. \n Ask your question, and Bot will assist you promptly.');
                             state.currentStep = 99;
                         } else if (ans?.toLowerCase() === 'report') {
                             const data = await getSavedReport();
-                            if (!data && userMessage === 'new report') {
-                                await sendReportTypeOptions(context);
-                                state.currentStep = 2;
-                            } else {
+                            if (data) {
                                 await getSavedReportName(context, data);
                                 state.currentStep = 12;
+                            } else {
+                                await sendReportTypeOptions(context);
+                                state.currentStep = 2;
                             } 
-                        } else {
+                        } else{
                             await context.sendActivity('Please select valid option');
                         }
                     } catch (error) {
@@ -299,7 +307,7 @@ class EchoBot extends ActivityHandler {
                         } else {
                             await context.sendActivity('Please select valid option');
                         }
-                    } catch (error) {
+                    } catch (error) {                        
                         await context.sendActivity(
                             'Sorry, We could not process with your answer.'
                         );
@@ -449,7 +457,6 @@ class EchoBot extends ActivityHandler {
                                 max_tokens: 100
                             });
                             ans = openaiResponse.choices[0].message.content.trim();
-                            console.log('ans----------', ans);
                         }
 
                         if (ans) {
@@ -501,17 +508,15 @@ class EchoBot extends ActivityHandler {
                             ans === 'pdf'
                                 ? await downloadPDFReport(context, selectedValues)
                                 : await downloadExcelReport(context, selectedValues);
-                            const heroCard = CardFactory.heroCard(
-                                '',
-                                undefined,
-                                [
-                                    { type: 'imBack', title: 'Yes', value: 'Yes' },
-                                    { type: 'imBack', title: 'No', value: 'No' }
-                                ],
-                                { text: 'Question 5 of 5: \n\n Would you like this report saved for future use?' }
-                            );
-                            await context.sendActivity({ attachments: [heroCard] });
-                            state.currentStep = 10;
+
+                                if (savedReport.report.reportName) {
+                                    await editOptions(context);
+                                    state.currentStep = 13
+                                  } else {
+                                    await saveOptions(context);
+                                    state.currentStep = 10;
+                                  }
+                                  
                         } else {
                             await context.sendActivity('Invalid selection. Please choose "yes" or "no".');
                         }
@@ -575,12 +580,81 @@ class EchoBot extends ActivityHandler {
                     break;
                 }
                 case 12: {
-                    const selectedSavedReport = context.activity.value.savedReport
+                    const selectedSavedReport = context?.activity?.value?.savedReport
                     try {
-                       const singleData = await getSingleSavedReport(selectedSavedReport)                       
-                       await this.savedReportAccessor.set(context, singleData[0]);
-                       await sendReportTypeOptions(context);
-                        state.currentStep = 2; 
+                        if(selectedSavedReport){
+                            const singleData = await getSingleSavedReport(selectedSavedReport) 
+                            const reportData = singleData[0]
+                            const filteredValue = JSON.parse(reportData?.reportFilter) 
+                            savedReport.report = reportData;
+
+                            selectedValues.reportType = reportData.reportName,
+                            selectedValues.period = { startDate: filteredValue.StartDate, endDate: filteredValue.EndDate };
+                            selectedValues.riskCode = filteredValue.ClassOfBusiness ? {class_of_business: filteredValue.ClassOfBusiness}:{original_currency_code: filteredValue.OriginalCurrencyCode};
+                            selectedValues.field = filteredValue.Field;
+
+                            await sendReportTypeOptions(context,reportData.reportName);
+                            if (filteredValue.StartDate && filteredValue.EndDate) {
+                                const datePickerCard = await createDatePickerCard(filteredValue);
+                                await context.sendActivity({ attachments: [datePickerCard] });
+                            }
+                            if (filteredValue.ClassOfBusiness) {
+                                await specificClassesCard(context, 'business', filteredValue);
+                            }
+                            if (filteredValue.OriginalCurrencyCode){
+                                await specificClassesCard(context, 'currency', filteredValue);
+                            }
+                            if(filteredValue.Field){
+                                await selectFields(context, reportData.reportName);
+                            }
+                        }
+                    } catch (error) {
+                        await context.sendActivity(
+                            'Sorry, We could not process with your answer.'
+                        );
+                    }
+                    break;
+                }
+                case 13: {
+                    let ans = null;
+
+                    try {
+                        if (userMessage === 'save' || userMessage === 'cancel') {
+                            ans = userMessage;
+                        } else {
+                            const openaiResponse = await client.chat.completions.create({
+                                messages: [
+                                    {
+                                        role: 'user',
+                                        // content: `Question: choose an option
+                                        // Option1: Yes
+                                        // Option2: No
+                                        // If user selects option1 then return only "yes".
+                                        // If user selects option2 then return only "no".
+                                        // User answer is '${ userMessage }'
+                                        // Return only one word based on the selection.
+                                        // `
+                                        content: `Select:
+                                        save
+                                        cancel
+                                        Input: ${ userMessage }
+                                        Return one word.`
+                                    }
+                                ],
+                                model: 'gpt-4',
+                                max_tokens: 2
+                            });
+
+                            ans = openaiResponse.choices[0].message.content.trim();
+                        }
+                        if (ans === 'save') {
+                            await editReport(context,savedReport.report.reportName, selectedValues);
+                            state.currentStep = 11;
+                        } else if (ans === 'cancel') {
+                            await context.sendActivity('Thank you!');
+                        } else {
+                            await context.sendActivity('Invalid selection. Please choose "save" or "cancel".');
+                        }
                     } catch (error) {
                         await context.sendActivity(
                             'Sorry, We could not process with your answer.'
@@ -605,8 +679,6 @@ class EchoBot extends ActivityHandler {
                 await this.savedReportAccessor.set(context, savedReport);
                 await next();
             } catch (error) {
-                console.log('error',error);
-                
                 await context.sendActivity('An error occurred. Let\'s start over.');
                 await this.resetConversation(context, await this.conversationStateAccessor.get(context));
                 await getQuestionType(context);

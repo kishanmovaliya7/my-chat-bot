@@ -3,7 +3,6 @@ const { query } = require('../services/db');
 async function getReportData(selectedValues) {
     try {
         const { period, riskCode, field } = selectedValues;
-        console.log('selectedValues', selectedValues);
 
         const fieldSelection = field.split(',')
             .map(f => `"${ f.trim() }"`)
