@@ -1,10 +1,13 @@
 const { CardFactory } = require('botbuilder');
 const { query } = require('../services/db');
+const { generateSQl } = require('./getTableDataFromQuery');
 
 async function getOptionValue(ans) {
     const riskCodeSelected = ans.includes('business') ? 'Class of Business' : 'Original Currency Code';
     try {
-        const rawDetails = await query(`SELECT DISTINCT "${ riskCodeSelected }" FROM rawDataTable`);
+        const sql = await generateSQl(`give me list of ${riskCodeSelected}`);
+        console.log(sql)
+        const rawDetails = await query(sql || `SELECT DISTINCT "${ riskCodeSelected }" FROM Policy`);
         return rawDetails;
     } catch (error) {
         console.error('Error:', error);

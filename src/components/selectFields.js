@@ -1,18 +1,25 @@
 const { CardFactory } = require('botbuilder');
 const { query } = require('../services/db');
 
-async function getAllColumns() {
+async function getAllColumns(reportType) {
     try {
-        const rawDetails = await query('PRAGMA table_info(rawDataTable)');
-        const columnNames = rawDetails.map(column => column.name);
+        const listOfTables = reportType?.split(',');
+        
+        let columnNames = []
+        if(listOfTables?.length) {
+            for (const table of listOfTables) {
+                const rawDetails = await query(`PRAGMA table_info(${table.trim()})`);
+                columnNames = [...columnNames, ...rawDetails.map(column => `${table}.${column.name}`)];
+            }
+        }
         return columnNames;
     } catch (error) {
         console.error('Error:', error);
     }
 }
 
-async function selectFields(context) {
-    const fields = await getAllColumns();
+async function selectFields(context, reportType) {
+    const fields = await getAllColumns(reportType);
 
     const choices = fields.map(item => ({
         title: item,

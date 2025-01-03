@@ -13,12 +13,11 @@ async function sendReportTypeOptions(context) {
                 style: 'expanded',
                 isRequired: true,
                 errorMessage: 'Please select one or more datasets that you would like to compile from.',
-                isMultiSelect: false,
+                isMultiSelect: true,
                 choices: [
                     {
                         title: 'Policy',
                         value: 'Policy',
-                        displayText: 'step2'
                     },
                     {
                         title: 'Premium',
@@ -27,6 +26,10 @@ async function sendReportTypeOptions(context) {
                     {
                         title: 'Claims',
                         value: 'Claims'
+                    },
+                    {
+                        title: 'Combine',
+                        value: 'Combine'
                     }
                 ]
             }

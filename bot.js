@@ -25,6 +25,10 @@ const client = new AzureOpenAI({
     deployment: modelDeployment
 });
 
+function hasMatchingValue(array1, array2) {
+    return array1.some(item => array2.includes(item));
+}
+
 class EchoBot extends ActivityHandler {
     constructor() {
         super();
@@ -116,22 +120,18 @@ class EchoBot extends ActivityHandler {
                                         // User answer is '${ userMessage }'
                                         // Return only one word based on the selection.
                                         // `
-                                        content: `Select:
-                                        Policy
-                                        Premium
-                                        Claims
-                                        Input: ${ userMessage }
-                                        Return one word.`
+                                        content: `Identify relevant options (Policy, Premium, Claims, Combine) from the input: ${userMessage}. Return only the matching options. If none match, return "None."`
                                     }
                                 ],
                                 model: 'gpt-4',
-                                max_tokens: 2
+                                max_tokens: 5
                             });
 
                             ans = openaiResponse.choices[0].message.content.trim();
                         }
-                        if (reportChoices.includes(ans)) {
-                            selectedValues.reportType = ans;
+                        
+                        if (ans.toLowerCase().includes('combine') || hasMatchingValue(reportChoices, ans?.split(','))) {
+                            selectedValues.reportType = ans.toLowerCase().includes('combine') ? reportChoices.join(','): ans;
                             await promptForFilters(context);
                             await specificPeriod(context, ans);
                             state.currentStep = 3;
@@ -391,7 +391,7 @@ class EchoBot extends ActivityHandler {
                             selectedValues.field = 'all';
                             state.currentStep = 9;
                         } else if (ans === 'no') {
-                            await selectFields(context);
+                            await selectFields(context, selectedValues.reportType);
                             state.currentStep = 8;
                         } else {
                             await context.sendActivity('Invalid selection. Please choose "yes" or "no".');
@@ -515,7 +515,6 @@ class EchoBot extends ActivityHandler {
                 }
                 case 99: {
                     await getTableDataFromQuery(context);
-                    await context.sendActivity('Type "restart" to begin a new query.');
                     break;
                 }
 

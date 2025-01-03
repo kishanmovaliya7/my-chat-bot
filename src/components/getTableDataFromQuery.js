@@ -66,13 +66,12 @@ async function askDatabase(sqlquery) {
   }
 }
 
-async function getTableDataFromQuery(context, selectedValues) {
-    const userMessage = context?.activity?.text;
+const generateSQl = async (userMessage) => {
+  try {
+ 
     const schemaDict = await getDatabaseInfo();
     const schemaString = formatDatabaseSchemaInfo(schemaDict);
-    console.log(schemaString)
-try {
-
+  
     const completion = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: userMessage }],
@@ -105,27 +104,45 @@ try {
         ],
       tool_choice: 'auto'
     })
-    console.log(JSON.stringify(completion))
+  
     const queryCall = completion.choices[0]?.message?.tool_calls[0];
     if (queryCall) {
-        const arguments = JSON.parse(queryCall.function.arguments);
-        const sqlQuery = arguments.query
-        if(sqlQuery) {
-          const result = await askDatabase(sqlQuery);
-          const completionResponse = await client.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-              { role: 'user', content: userMessage },
-              { role: 'function', content: JSON.stringify(result),name: 'askDatabase'}
-            ]
-          });
-          await context.sendActivity(completionResponse.choices[0].message.content);
-        }
+      const arguments = JSON.parse(queryCall.function.arguments);
+      const sqlQuery = arguments.query
+  
+      return sqlQuery;
     }
+    return null
+  } catch(error) {
+    return null
+  }
+}
+
+async function getTableDataFromQuery(context, selectedValues) {
+
+    
+try {
+  const userMessage = context?.activity?.text;
+  const sqlQuery = await generateSQl(userMessage)
+  if(sqlQuery) {
+    const result = await askDatabase(sqlQuery);
+    const completionResponse = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'user', content: userMessage },
+        { role: 'function', content: JSON.stringify(result),name: 'askDatabase'}
+      ]
+    });
+    await context.sendActivity(completionResponse.choices[0].message.content);
+  } else {
+    await context.sendActivity(`Apologies, I couldn't find the information or match you were looking for. Please try rephrasing your query or provide more details, and I'll do my best to assist you!`);
+  }
 } catch(error) {
     console.log(error)
 }
     // await askDatabase(schemaString, userMessage, context)
 }
 
-module.exports = { getTableDataFromQuery };
+
+
+module.exports = { getTableDataFromQuery, generateSQl };
