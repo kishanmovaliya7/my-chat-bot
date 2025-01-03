@@ -151,7 +151,7 @@ class EchoBot extends ActivityHandler {
                 });
                 ans = openaiResponse.choices[0].message.content.trim();
               }
-
+              console.log(ans)
               if (context?.activity?.value?.data === 'new report') {
                 await sendReportTypeOptions(context);
                 savedReport.report = {};
@@ -320,7 +320,6 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          // shorten prompt is pending for this step
           case 5: {
             let ans = null;
             try {
@@ -441,7 +440,6 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          
           case 7: {
             const riskCode = context.activity.value;
 
