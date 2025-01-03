@@ -1,5 +1,7 @@
-const sqlite3 = require('sqlite3');
-const XLSX = require('xlsx');
+const sqlite3 = require("sqlite3");
+const cron = require("node-cron");
+const XLSX = require("xlsx");
+const mailerFunction = require("../components/nodemailer");
 
 const db = new sqlite3.Database('rawData.db', (err) => {
     if (err) {
@@ -126,8 +128,95 @@ const importDataFromXlsx = async (xlsxFilePath) => {
     console.log('Data import complete.');
 };
 
+
+const addEntry = async (tableName, data) => {
+    const columns = Object.keys(data);
+  
+    const placeholders = columns.map(() => "?").join(", ");
+  
+    const sql = `INSERT INTO ${tableName} (\`${columns.join(
+      "`, `"
+    )}\`) VALUES (${placeholders})`;
+  
+    const tableExists = await checkTableExists(tableName);
+  
+    try {
+      if (tableExists) {
+        await query(
+          sql,
+          columns.map((col) => data[col])
+        );
+        console.log("Entry added successfully.");
+      } else {
+        await createTable(tableName, columns);
+        console.log("Entry created successfully.");
+      }
+    } catch (err) {
+      console.error("Error adding entry:", err);
+    }
+  };
+  
+  const addEntryToSaveReport = async () => {
+    console.log("FUNCTION CALL FOR ADD ENTRY TO SAVE REPORT");
+  
+    const newEntry = {
+      Name: "testReports-1735894403790",
+      reportName: "Policy",
+      email: "tests@gmail.com",
+      reportFilter: {
+        StartDate: "05/01/2022",
+        EndDate: "05/01/2023",
+        ClassOfBusiness: "VAT BOND",
+        Field:
+          "Policy.Policy Reference, Policy.Original Insured, Policy.Territory, Policy.Insured, Policy.Start Date, Policy.Expiry Date, Policy.Class of Business, Policy.Original Currency Code, Policy.Exchange Rate, Policy.Limit of Liability, Policy.100% Gross Premium, Policy.Signed Line, Policy.Gross Premium Paid this Time , Policy.Gross Premium Paid this Time in Settlement Currency, Policy.Commission Percentage, Policy.Brokerage Percentage, Policy.Agreement Reference, Policy.Settlement Currency Code, Policy.Org or Personal, Policy.Insurer, Policy.Period, Policy.Year",
+      },
+      scheduler: { minute: 2, hours: 3, days: 1, month: 2, week: 1 },
+      isDeleted: 1,
+      emailLists: "[object Object]",
+    };
+  
+    try {
+      await addEntry("savedReports", newEntry);
+      // console.log('Report entry added successfully.');
+    } catch (err) {
+      console.error("Error adding report entry:", err);
+    }
+  };
+  
+  const runAllCronJobs = async () => {
+    const sql = `SELECT * FROM savedReports WHERE isDeleted = 1`;
+    try {
+      const data = await query(sql);
+      console.log("data", data);
+  
+      for (const iterator of data) {
+        console.log("iterator.schedule", iterator.Name);
+  
+        const schedule = iterator.scheduler;
+        console.log(
+          `${schedule.minute || "*"} ${schedule.hours || "*"} ${
+            schedule.days || "*"
+          } ${schedule.month || "*"} ${schedule.week || "*"}`
+        );
+        cron.schedule(
+          `*/1 * * * *`,
+          async () => {
+            await mailerFunction(iterator);
+          },
+          { name: `Schedule-${iterator.Name}`, timezone: "America/New_York" }
+        );
+      }
+  
+      return data;
+    } catch (err) {
+      console.error("Error running cron job:", err);
+    }
+  };
+  
 module.exports = {
-    db,
-    query,
-    importDataFromXlsx
+  db,
+  query,
+  importDataFromXlsx,
+  runAllCronJobs,
+  addEntryToSaveReport,
 };
