@@ -43,7 +43,7 @@ async function specificClassesCard(context, ans, parsedObject = '') {
                 type: 'Action.Submit',
                 title: 'Submit',
                 data: {
-                    step: 'step6'
+                    step: ans.includes('business') ?'step6' : 'step7'
                 }
             }
         ],

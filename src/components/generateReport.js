@@ -5,7 +5,7 @@ async function generateReport(context) {
         {
             type: 'messageBack',
             title: 'PDF',
-            value: {step: 'step9', data:'PDF'},
+            value: {step: 'step10', data:'PDF'},
             text: 'PDF',
             displayText: 'PDF'
         },
@@ -13,7 +13,7 @@ async function generateReport(context) {
             type: 'messageBack',
             title: 'Excel',
             text:"Excel",
-            value: {step: 'step9', data:'Excel'},
+            value: {step: 'step10', data:'Excel'},
             displayText: 'Excel'
         }
     ];

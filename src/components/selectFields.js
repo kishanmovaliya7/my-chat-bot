@@ -53,7 +53,7 @@ async function selectFields(context, reportType) {
                 type: 'Action.Submit',
                 title: 'Submit',
                 data: {
-                    step: 'step8'
+                    step: 'step9'
                 }
             }
         ],
@@ -69,4 +69,32 @@ async function selectFields(context, reportType) {
     });
 }
 
-module.exports = { selectFields, getAllColumns };
+const askForFieldconfirmation = async(context) => {
+const heroCard = CardFactory.heroCard(
+                    '',
+                    undefined,
+                    [
+                      {
+                        type: 'messageBack',
+                        title: 'Yes',
+                        value: {step: 'step8', data: 'Yes'},
+                        text: "yes",
+                        displayText: 'Yes',
+                      },
+                      {
+                        type: 'messageBack',
+                        title: 'No',
+                        value: {step: 'step8', data: 'no'},
+                        text: "no",
+                        displayText: 'No',
+                      },
+                    ],
+                    {
+                      text: 'Question 3 of 5: \n\n Would you like all available fields in the report?',
+                    }
+                  );
+                  await context.sendActivity({ attachments: [heroCard] });
+                  
+}
+
+module.exports = { selectFields, getAllColumns, askForFieldconfirmation };

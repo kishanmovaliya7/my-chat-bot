@@ -8,14 +8,16 @@ async function editOptions(context) {
             {
                 type: 'messageBack',
                 title: 'Save',
-                value: 'Save',
-                displayText: 'step22'
+                text: 'Save',
+                value: {step: 'step22', data:'Save'},
+                displayText: 'Save'
             },
             {
                 type: 'messageBack',
                 title: 'Cancel',
-                value: 'Cancel',
-                displayText: 'step22'
+                text: 'Cancel',
+                value: {step: 'step22', data:'Cancel'},
+                displayText: 'Cancel'
             }
         ],
         { text: 'Question 5 of 5: \n\n Would you like this report saved?' }
@@ -31,14 +33,16 @@ async function saveOptions(context) {
             {
                 type: 'messageBack',
                 title: 'Yes',
-                value: 'Yes',
-                displayText: 'step10'
+                text: "Yes",
+                value: {step: 'step11', data:'Yes'},
+                displayText: 'Yes'
             },
             {
                 type: 'messageBack',
                 title: 'No',
-                value: 'No',
-                displayText: 'step10'
+                text: "No",
+                value: {step: 'step11', data:'No'},
+                displayText: 'No'
             }
         ],
         { text: 'Question 5 of 5: \n\n Would you like this report saved for future use?' }

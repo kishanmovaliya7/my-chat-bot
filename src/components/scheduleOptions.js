@@ -54,7 +54,7 @@ async function schedulerForm(context) {
             {
                 type: 'Action.Submit',
                 title: 'OK',
-                data: {step: 'step13'}
+                data: {step: 'step14'}
             }
         ],
         $schema: 'http://adaptivecards.io/schemas/adaptive-card',
@@ -86,7 +86,7 @@ async function askForToEmail(context) {
             {
                 type: 'Action.Submit',
                 title: 'OK',
-                data: {step: 'step16'}
+                data: {step: 'step17'}
             }
         ],
         $schema: 'http://adaptivecards.io/schemas/adaptive-card',
@@ -110,14 +110,14 @@ async function AskforEmailConfirmation(context) {
                 type: 'messageBack',
                 title: 'Yes',
                 text: 'Yes',
-                value: {step:'step14',data:'Yes'},
+                value: {step:'step15',data:'Yes'},
                 displayText: 'Yes'
             },
             {
                 type: 'messageBack',
                 title: 'No',
                 text: 'No',
-                value: {step:'step14',data:'No'},
+                value: {step:'step15',data:'No'},
                 displayText: 'No'
             }
         ],
@@ -135,14 +135,14 @@ async function AskforOtherEmailConfirmation(context) {
                 type: 'messageBack',
                 title: 'Yes',
                 text: 'Yes',
-                value: {step:'step15',data:'Yes'},
+                value: {step:'step16',data:'Yes'},
                 displayText: 'Yes'
             },
             {
                 type: 'messageBack',
                 title: 'No',
                 text: 'No',
-                value: {step:'step15',data:'No'},
+                value: {step:'step16',data:'No'},
                 displayText: 'No'
             }
         ],
@@ -160,14 +160,14 @@ async function AskforSchedulerConfirmation(context) {
                 type: 'messageBack',
                 title: 'Yes',
                 text: 'Yes',
-                value: {step:'step12',data:'Yes'},
+                value: {step:'step13',data:'Yes'},
                 displayText: 'Yes'
             },
             {
                 type: 'messageBack',
                 title: 'No',
                 text: 'No',
-                value: {step:'step12',data:'No'},
+                value: {step:'step13',data:'No'},
                 displayText: 'No'
             }
         ],

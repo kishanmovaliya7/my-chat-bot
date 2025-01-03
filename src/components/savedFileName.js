@@ -18,7 +18,7 @@ async function savedFileName(context) {
             {
                 type: 'Action.Submit',
                 title: 'OK',
-                data: {step: 'step11'}
+                data: {step: 'step12'}
             }
         ],
         $schema: 'http://adaptivecards.io/schemas/adaptive-card',

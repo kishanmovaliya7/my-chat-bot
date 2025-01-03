@@ -29,6 +29,7 @@ const {
 const {
   selectFields,
   getAllColumns,
+  askForFieldconfirmation,
 } = require('./src/components/selectFields');
 const { generateReport } = require('./src/components/generateReport');
 const { downloadPDFReport } = require('./src/components/downloadPDFReport');
@@ -107,7 +108,7 @@ class EchoBot extends ActivityHandler {
         );
         const savedReport = await this.savedReportAccessor.get(context, {});
 
-        console.log(savedReport)
+        console.log(JSON.stringify(context.activity))
 
         // Validate if the conversation should be reset
         if (userMessage === 'restart' || userMessage === 'start over') {
@@ -287,15 +288,6 @@ class EchoBot extends ActivityHandler {
                   messages: [
                     {
                       role: 'user',
-                      // content: `Question: Validate if these dates are acceptable
-                      // User answer is '${ userMessage }'
-
-                      // Rules:
-                      // 1. Start date must be before end date
-                      // 2. Dates should not be empty
-
-                      // If dates are valid return only in this exact format: {"startDate": "DD-MM-YYYY", "endDate": "DD-MM-YYYY"}
-                      // If dates are invalid return only "no".`
                       content: `${userMessage}
                                         Return only:
                                         Valid -> {"startDate": "DD-MM-YYYY", "endDate": "DD-MM-YYYY"}
@@ -333,8 +325,8 @@ class EchoBot extends ActivityHandler {
             let ans = null;
             try {
               if (
-                userMessage.includes('business') ||
-                userMessage.includes('currency')
+                userMessage.includes('yes') ||
+                userMessage.includes('no')
               ) {
                 ans = userMessage;
               } else {
@@ -342,13 +334,11 @@ class EchoBot extends ActivityHandler {
                   messages: [
                     {
                       role: 'user',
-                      content: `Choose an option:
-                                        Option 1: class of business
-                                        Option 2: original currency code
-                                        User answer: '${userMessage}'
-                                        If user selects option 1, return "class of business".
-                                        If user selects option 2, return "original currency code".
-                                        Return one word based on the selection.
+                      content: `Select:
+                                        yes
+                                        no
+                                        Input: ${userMessage}
+                                        Return one word.
                                         `,
                     },
                   ],
@@ -359,15 +349,16 @@ class EchoBot extends ActivityHandler {
                   .trim()
                   .toLowerCase();
               }
-              if (ans.includes('business') || ans.includes('currency')) {
-                await specificClassesCard(context, ans);
+              if (ans.includes('yes')) {
+                await specificClassesCard(context, 'business');
 
-                const fields = await getOptionValue(ans);
+                const fields = await getOptionValue('business');
                 fieldValues.push(fields);
 
                 state.currentStep = 6;
               } else {
-                await context.sendActivity('Please select valid option');
+                await askForFieldconfirmation(context)
+                state.currentStep = 8;
               }
             } catch (error) {
               await context.sendActivity(
@@ -413,18 +404,8 @@ class EchoBot extends ActivityHandler {
                                         User answer: '${userMessage}'
                                         Instructions:
                                         - For "select all," return all options as JSON object.
-                                        - For multiple options: { "${
-                                          selectedColumnType ===
-                                          'Class of Business'
-                                            ? 'class_of_business'
-                                            : 'original_currency_code'
-                                        }": "OIL & GAS PACKAGE, CAR" }.
-                                        - For a single option: { "${
-                                          selectedColumnType ===
-                                          'Class of Business'
-                                            ? 'class_of_business'
-                                            : 'original_currency_code'
-                                        }": "OIL & GAS PACKAGE" }.
+                                        - For multiple options: { "class_of_business": "OIL & GAS PACKAGE, CAR" }.
+                                        - For a single option: { "class_of_business": "OIL & GAS PACKAGE" }.
                                         - Output only valid JSON object.`,
                     },
                   ],
@@ -442,29 +423,12 @@ class EchoBot extends ActivityHandler {
                   await editOptions(context);
                   state.currentStep = 22;
                 } else {
-                  const heroCard = CardFactory.heroCard(
-                    '',
-                    undefined,
-                    [
-                      {
-                        type: 'messageBack',
-                        title: 'Yes',
-                        value: 'Yes',
-                        displayText: 'step7',
-                      },
-                      {
-                        type: 'messageBack',
-                        title: 'No',
-                        value: 'No',
-                        displayText: 'step7',
-                      },
-                    ],
-                    {
-                      text: 'Question 3 of 5: \n\n Would you like all available fields in the report?',
-                    }
-                  );
-                  await context.sendActivity({ attachments: [heroCard] });
-                  state.currentStep = 7;
+                    await specificClassesCard(context, 'currency');
+
+                    const fields = await getOptionValue('currency');
+                    fieldValues.push(fields);
+    
+                    state.currentStep = 8;
                 }
               } else {
                 await context.sendActivity('Please select valid option');
@@ -477,7 +441,78 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
+          
           case 7: {
+            const riskCode = context.activity.value;
+
+            let ans = null;
+            try {
+              if (riskCode) {
+                ans = riskCode;
+              } else {
+                const fieldOptions = fieldValues
+                  .flat()
+                  .map(
+                    (item, index) =>
+                      `option${index + 1}: ${Object.values(item)[0]}`
+                  );
+                const selectedColumnType = fieldValues
+                  .flat()
+                  .map((item) => Object.keys(item)[0])[0];
+
+                const selectedOptions = fieldValues
+                  .flat()
+                  .map(
+                    (item, index) =>
+                      `If user select option${index + 1} then return only ${
+                        Object.values(item)[0]
+                      }`
+                  );
+
+                const openaiResponse = await client.chat.completions.create({
+                  messages: [
+                    {
+                      role: 'user',
+                      content: `Choose an option:
+                                        ${fieldOptions}
+                                        ${selectedOptions}
+                                        User answer: '${userMessage}'
+                                        Instructions:
+                                        - For "select all," return all options as JSON object.
+                                        - For multiple options: { "original_currency_code": "OIL & GAS PACKAGE, CAR" }.
+                                        - For a single option: { "original_currency_code": "OIL & GAS PACKAGE" }.
+                                        - Output only valid JSON object.`,
+                    },
+                  ],
+                  model: 'gpt-4',
+                  max_tokens: 100,
+                });
+                ans = openaiResponse.choices[0].message.content.trim();
+                const rawResponse = ans.replace(/^```json|```$/g, '').trim();
+                ans = JSON.parse(rawResponse);
+              }
+
+              if (ans) {
+                selectedValues.riskCode = ans;
+                if (savedReport.report?.reportName) {
+                  await editOptions(context);
+                  state.currentStep = 22;
+                } else {
+                  await askForFieldconfirmation(context)
+                  state.currentStep = 8;
+                }
+              } else {
+                await context.sendActivity('Please select valid option');
+              }
+            } catch (error) {
+                console.log(error)
+              await context.sendActivity(
+                'Sorry, We could not process with your answer.'
+              );
+            }
+            break;
+          }
+          case 8: {
             let ans = null;
             try {
               if (userMessage === 'yes' || userMessage === 'no') {
@@ -523,7 +558,7 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          case 8: {
+          case 9: {
             let ans = null;
             const fields = context.activity.value?.field;
 
@@ -566,10 +601,9 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          case 9: {
+          case 10: {
             let ans = null;
             try {
-                console.log(JSON.stringify(context.activity))
               if (userMessage?.toLowerCase() === 'pdf' || userMessage?.toLowerCase() === 'excel') {
                 ans = userMessage?.toLowerCase();
               } else {
@@ -616,7 +650,7 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          case 10: {
+          case 11: {
             let ans = null;
 
             try {
@@ -657,7 +691,7 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          case 11: {
+          case 12: {
             try {
                 const filename = `${ context.activity.value.filename }-${ new Date().getTime() }`;
                 const aaa = await saveReport(context,filename, selectedValues);
@@ -675,7 +709,7 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          case 12: {
+          case 13: {
             let ans = null;
 
             try {
@@ -719,7 +753,7 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          case 13: {
+          case 14: {
             let ans = null;
             const schedule = `${context.activity.value?.minute || '*'} ${
               context.activity.value?.hour || '*'
@@ -761,7 +795,7 @@ class EchoBot extends ActivityHandler {
             }
             break;
           }
-          case 14: {
+          case 15: {
             let ans = null;
             try {
               if (userMessage === 'yes' || userMessage === 'no') {
@@ -805,7 +839,7 @@ class EchoBot extends ActivityHandler {
 
             break;
           }
-          case 15: {
+          case 16: {
             let ans = null;
             try {
               if (userMessage === 'yes' || userMessage === 'no') {
@@ -848,7 +882,7 @@ class EchoBot extends ActivityHandler {
 
             break;
           }
-          case 16: {
+          case 17: {
             let ans = null;
             try {
               if (context.activity?.textFormat === 'plain') {

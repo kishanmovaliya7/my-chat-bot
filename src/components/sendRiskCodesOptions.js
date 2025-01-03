@@ -4,17 +4,17 @@ async function sendRiskCodesOptions(context) {
     const buttons = [
         {
             type: 'messageBack',
-            title: 'Class of Business',
-            text: 'Class of Business',
-            value: {step: 'step5', data: 'Class of Business'},
-            displayText: 'Class of Business'
+            title: 'Yes',
+            text: 'Yes',
+            value: {step: 'step5', data: 'Yes'},
+            displayText: 'Yes'
         },
         {
             type: 'messageBack',
-            title: 'Original Currency Code',
-            text: 'Original Currency Code',
-            value: {step: 'step5', data: 'Original Currency Code'},
-            displayText: 'Original Currency Code'
+            title: 'No',
+            text: 'No',
+            value: {step: 'step5', data: 'No'},
+            displayText: 'No'
         }
     ];
 
