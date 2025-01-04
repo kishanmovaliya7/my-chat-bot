@@ -2,6 +2,7 @@ const path = require('path');
 
 const dotenv = require('dotenv');
 const ENV_FILE = path.join(__dirname, '.env');
+const fs = require('fs');
 dotenv.config({ path: ENV_FILE });
 
 const restify = require('restify');
@@ -72,6 +73,38 @@ const myBot = new EchoBot();
 
 server.post('/api/messages', async (req, res) => {
     await adapter.process(req, res, (context) => myBot.run(context));
+});
+
+server.get('/public/:filename', (req, res, next) => {
+    const fileName = req.params.filename;
+    const filePath = path.join(__dirname, 'public', fileName);
+
+    if (!fs.existsSync(filePath)) {
+        res.writeHead(404);
+        res.end('File not found');
+        return next();
+    }
+
+    // Set headers for file download
+    res.writeHead(200, {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename=${fileName}`
+    });
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+
+    fileStream.on('error', (error) => {
+        console.error('Stream error:', error);
+        res.writeHead(500);
+        res.end('Error streaming file');
+        return next(error);
+    });
+
+    fileStream.pipe(res);
+    res.on('finish', () => {
+        return next();
+    });
 });
 
 server.on('upgrade', async (req, socket, head) => {

@@ -44,7 +44,7 @@ async function schedulerForm(context) {
                 type: 'Input.Text',
                 id: 'month',
                 placeholder: 'Enter between 0 - 12',
-                label: 'Minute',
+                label: 'Month',
                 isRequired: true,
                 errorMessage: 'Enter month between 0 - 12',
                 maxLength: 2
@@ -146,7 +146,7 @@ async function AskforOtherEmailConfirmation(context) {
                 displayText: 'No'
             }
         ],
-        { text: 'Would you like to add another email to receive this report?' }
+        { text: 'Would you like to add another email to receive this report apart from you?' }
     );
     await context.sendActivity({ attachments: [heroCard] });
 }
@@ -171,7 +171,7 @@ async function AskforSchedulerConfirmation(context) {
                 displayText: 'No'
             }
         ],
-        { text: 'Would you like to scheduler this to run on specific dates?' }
+        { text: 'Would you like to schedule this to run on specific dates?' }
     );
     await context.sendActivity({ attachments: [heroCard] });
 }

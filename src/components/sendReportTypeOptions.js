@@ -13,7 +13,7 @@ async function getSavedReportName(context, data) {
                 type: 'Input.ChoiceSet',
                 id: 'savedReport',
                 style: 'compact',
-                label: 'want to show Saved Report ?',
+                label: 'Would you like to edit/view saved report?',
                 placeholder: 'Select Report',
                 choices: choices,
                 isMultiSelect: false
@@ -45,6 +45,7 @@ async function getSavedReportName(context, data) {
     await context.sendActivity({
         type: 'message',
         attachments: [adaptiveCard]
+        // text: 'Great choice of xyz....'
     });
 }
 

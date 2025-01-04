@@ -5,7 +5,6 @@ const {
   CardFactory,
 } = require('botbuilder');
 const { AzureOpenAI } = require('openai');
-const cronstrue = require('cronstrue');
 
 const {
   sendReportTypeOptions,
@@ -95,8 +94,9 @@ class EchoBot extends ActivityHandler {
           (typeof context?.activity?.value === 'string'
             ? context?.activity?.value?.toLowerCase()
             : null);
+
         const state = await this.conversationStateAccessor.get(context, {
-          currentStep: 11,
+          currentStep: 1,
         });
         const selectedValues = await this.selectedValuesAccessor.get(
           context,
@@ -108,7 +108,7 @@ class EchoBot extends ActivityHandler {
         );
         const savedReport = await this.savedReportAccessor.get(context, {});
 
-        console.log(JSON.stringify(context.activity))
+        // console.log(JSON.stringify(context.activity))
 
         // Validate if the conversation should be reset
         if (userMessage === 'restart' || userMessage === 'start over') {
@@ -624,26 +624,25 @@ class EchoBot extends ActivityHandler {
 
                 ans = openaiResponse.choices[0].message.content?.toLowerCase().trim();
               }
-              console.log(ans)
               if (ans === 'pdf' || ans === 'excel') {
                 ans === 'pdf'
                   ? await downloadPDFReport(context, selectedValues)
                   : await downloadExcelReport(context, selectedValues);
-
-                if (savedReport.report?.reportName) {
-                  await editOptions(context);
-                  state.currentStep = 22;
-                } else {
-                  await saveOptions(context);
-                  state.currentStep = 10;
-                }
+                  
+                    if (savedReport.report?.reportName) {
+                        await editOptions(context);
+                        state.currentStep = 22;
+                      } else {
+                        await saveOptions(context);
+                        state.currentStep = 10;
+                      }
+                
               } else {
                 await context.sendActivity(
-                  'Invalid selection. Please choose "yes" or "no".'
+                  'Invalid selection. Please choose "pdf" or "excel".'
                 );
               }
             } catch (error) {
-                console.log(error)
               await context.sendActivity(
                 'Sorry, We could not process with your answer.'
               );

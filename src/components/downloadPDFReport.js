@@ -2,8 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const { getReportData } = require('./getReport');
 const { jsPDF } = require('jspdf');
+const { CardFactory } = require('botbuilder');
 require('jspdf-autotable');
 
+// Function to create a unique file path in the 'public' folder
 function getUniqueFilePath(basePath, fileName) {
     const ext = path.extname(fileName);
     const name = path.basename(fileName, ext);
@@ -15,7 +17,10 @@ function getUniqueFilePath(basePath, fileName) {
         counter++;
     }
 
-    return uniquePath;
+    return {
+        filePath: uniquePath,
+        fileName: path.basename(uniquePath)
+    };
 }
 
 async function downloadPDFReport(context, selectedValues) {
@@ -46,15 +51,38 @@ async function downloadPDFReport(context, selectedValues) {
             theme: 'grid'
         });
 
-        // Save the PDF file
-        const downloadsFolder = path.join(require('os').homedir(), 'Downloads');
-        const filePath = getUniqueFilePath(downloadsFolder, 'report.pdf');
+        const publicDir = path.join(__dirname, '..', '..', 'public');
+        if (!fs.existsSync(publicDir)) {
+            fs.mkdirSync(publicDir);
+        }
+        const { filePath, fileName } = getUniqueFilePath(publicDir, 'report.pdf');
+
         const pdfData = doc.output('arraybuffer');
         fs.writeFileSync(filePath, Buffer.from(pdfData));
 
-        await context.sendActivity('Report has been downloaded.');
+        const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
+        const buttons = [
+            {
+                type: 'openUrl',
+                title: 'Download Report',
+                value: downloadUrl
+            }
+        ];
+
+        const heroCard = CardFactory.heroCard(
+            '',
+            undefined,
+            buttons,
+            { text: 'Your report is ready! \n\n Click the button below to download your report.' }
+        );
+
+        await context.sendActivity({
+            type: 'message',
+            attachments: [heroCard]
+        });
+        return fileName;
     } catch (error) {
-        await context.sendActivity('An error occurred while downloading the report.');
+        await context.sendActivity('An error occurred while downloading the report: ' + error.message);
     }
 }
 
