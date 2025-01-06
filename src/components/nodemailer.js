@@ -38,7 +38,7 @@ async function sendAnEmail(reportName, email, excelBuffer, type) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully: ", info.response);
+    console.log("Email sent successfully: ", {res: info.response, email: email});
   } catch (error) {
     console.error("Error sending email: ", error);
   }
@@ -69,25 +69,33 @@ async function mailerFunction(iterator) {
   const { reportName, reportFilter, emailLists } = iterator;
   const report = JSON.parse(reportFilter);
 
-    // const userMessage = `Create a join sql query using unique field from ${reportName} tables and return only this ${abc} `;
+  // const userMessage = `Create a join sql query using unique field from ${reportName} tables and return only this ${abc} `;
 
-    // const userMessage = `Create a join sql query using unique field from ${reportName} tables and start date is greater then or eqaul to ${report.StartDate} and end date is less then or eqaul to ${report.EndDate} and Class of Business is ${report.ClassOfBusiness} and Original Currency Code is ${report.OriginalCurrencyCode} and return only this ${report.Field} `;
-    console.log("reportName", reportName);
-    console.log("report", report);
-    
-    
-    const userMessage = `${reportName.split(',').length > 1 ? 'Create a join sql query using unique field' : 'Create a sql query'} from ${reportName} tables ${ report?.StartDate && `and start date is greater then or eqaul to  ${ report?.StartDate }` } ${ report?.EndDate && `and end date is less then or eqaul to ${ report?.EndDate }` } ${ (report?.ClassOfBusiness || report?.business) && `and Class of Business is ${ report?.ClassOfBusiness || report?.business }` } ${ (report?.OriginalCurrencyCode || report?.currency) && `and Original Currency Code is ${ report?.OriginalCurrencyCode || report?.currency }` }  and return only this ${ report.Field }`;
+  // const userMessage = `Create a join sql query using unique field from ${reportName} tables and start date is greater then or eqaul to ${report.StartDate} and end date is less then or eqaul to ${report.EndDate} and Class of Business is ${report.ClassOfBusiness} and Original Currency Code is ${report.OriginalCurrencyCode} and return only this ${report.Field} `;
 
-    console.log("|userMessage|", userMessage);
-    
+  // const userMessage = `Create a join sql query using unique field from ${ reportName } tables ${ report?.StartDate && `and start date is ${ report?.StartDate }` } ${ report?.EndDate && `and end date is ${ report?.EndDate }` } ${ (Business?.ClassOfBusiness || Business?.business) && `and Class of Business is ${ Business?.class_of_business || Business?.business }` } ${ (riskCode?.OriginalCurrencyCode || riskCode?.currency) && `and Original Currency Code is ${ riskCode?.OriginalCurrencyCode || riskCode?.currency }` }  and return only this ${ field }`;
+  
+
+  const userMessage =  `${reportName.split(',').length > 1 
+    ? 'Create a join sql query using unique field' 
+    : 'Create a sql query'} from ${reportName} tables ${report?.StartDate 
+    ? `and start date is greater than or equal to ${report?.StartDate}` 
+    : ''} ${report?.EndDate 
+    ? `and end date is less than or equal to ${report?.EndDate}` 
+    : ''} ${ (report?.ClassOfBusiness || report?.business) 
+    ? `and Class of Business is ${report?.ClassOfBusiness || report?.business}` 
+    : ''} ${ (report?.OriginalCurrencyCode || report?.currency) 
+    ? `and Original Currency Code is ${report?.OriginalCurrencyCode || report?.currency}` 
+    : ''} and return only this ${report.Field}`;
 
   const sqlQuery = await generateSQl(userMessage);
-  console.log("sqlQuery", sqlQuery);
-
+  console.log("sqlQuery**:-", sqlQuery);
   const policyData = await query(sqlQuery);
-  // const excelBuffer = await getExcelReportForEmail(policyData);
-  const pdfBuffer = await getPDFReportForEmail(policyData);
-  await sendAnEmail(reportName, emailLists, pdfBuffer, "pdf");
+
+  const excelBuffer = await getExcelReportForEmail(policyData);
+  // const pdfBuffer = await getPDFReportForEmail(policyData);
+
+  await sendAnEmail(reportName, emailLists, excelBuffer, "excel");
 }
 
 module.exports = mailerFunction;

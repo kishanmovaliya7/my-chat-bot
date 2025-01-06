@@ -122,6 +122,8 @@ class EchoBot extends ActivityHandler {
           state.currentStep =
             parseInt(stepCount.slice(4)) 
         }
+        console.log("state.currentStep", state.currentStep);
+        
         switch (state.currentStep) {
           case 1:
             try {

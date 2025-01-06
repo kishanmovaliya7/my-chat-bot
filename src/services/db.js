@@ -180,7 +180,7 @@ const addEntryToSaveReport = async () => {
     reportFilter: JSON.stringify({
       StartDate: "1970-01-01",
       EndDate: "1970-01-01",
-      ClassOfBusiness: ['Property', 'CAR', 'VAT BOND'],
+      ClassOfBusiness: ["Property", "CAR", "VAT BOND"],
       OriginalCurrencyCode: ["EUR", "GBP"],
       Field:
         "Policy.`Policy Reference`, Policy.`Original Insured`, Policy.`Territory`, Policy.`Insured`, Policy.`Start Date`, Policy.`Expiry Date`, Policy.`Class of Business`, Policy.`Original Currency Code`, Policy.`Exchange Rate`, Policy.`Limit of Liability`, Policy.`100% Gross Premium`, Policy.`Signed Line`, Policy.`Gross Premium Paid this Time `, Policy.`Gross Premium Paid this Time in Settlement Currency`, Policy.`Commission Percentage`, Policy.`Brokerage Percentage`, Policy.`Agreement Reference`, Policy.`Settlement Currency Code`, Policy.`Org or Personal`, Policy.`Insurer`, Policy.`Period`, Policy.`Year`",
@@ -204,19 +204,41 @@ const runAllCronJobs = async () => {
   const sql = `SELECT * FROM SavedReport WHERE isDeleted = 0 AND isConfirm = 1`;
   try {
     const data = await query(sql);
-    
+
     for (const iterator of data) {
-      console.log("iterator.Name", iterator.Name);
-      
+      console.log("iterator.scheduler", iterator.scheduler);
+
       cron.schedule(
-        `*/2 * * * *`,
+        `${iterator.scheduler}`,
         async () => {
-          console.log("Called", iterator.Name, new Date);
+          console.log(iterator.Name, "Called at", new Date());
           await mailerFunction(iterator);
         },
         { name: `Schedule-${iterator.Name}`, timezone: "America/New_York" }
       );
     }
+
+    return data;
+  } catch (err) {
+    console.error("Error running cron job:", err);
+  }
+};
+
+
+const runCronJobByFileName = async (field) => {
+  const sql = `SELECT * FROM SavedReport WHERE Name = ${field}`;
+  try {
+    const data = await query(sql);
+    console.log("data", data.Name);
+
+    cron.schedule(
+      data.scheduler,
+      async () => {
+        console.log(data.Name, "Called at*", new Date());
+        await mailerFunction(data);
+      },
+      { name: `Schedule-${data.Name}`, timezone: "America/New_York" }
+    );
 
     return data;
   } catch (err) {
@@ -231,4 +253,5 @@ module.exports = {
   runAllCronJobs,
   addEntryToSaveReport,
   dropTable,
+  runCronJobByFileName,
 };

@@ -5,22 +5,34 @@ async function getExcelReportForEmail(selectedValues) {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Report");
 
-    // Add column headers
-    sheet.addRow(Object.keys(selectedValues[0]));
+    // Check if selectedValues is empty
+    if (!selectedValues || selectedValues.length === 0) {
+      sheet.addRow(["No data available"]);
+    } else {
+      // Add column headers
+      const columnHeaders = Object.keys(selectedValues[0]);
+      sheet.addRow(columnHeaders);
 
-    // Add data rows
-    selectedValues.forEach((row) => {
-      sheet.addRow(Object.values(row));
-    });
+      // Add data rows
+      selectedValues.forEach((row) => {
+        const rowData = columnHeaders.map((header) => {
+          const value = row[header];
+          return value !== undefined && value !== null ? value : "null";
+        });
+        sheet.addRow(rowData);
+      });
+    }
 
     // Generate the file and return its buffer
     const buffer = await workbook.xlsx.writeBuffer();
-
     console.log("The Excel report has been generated successfully.");
-    return buffer; 
+    return buffer;
   } catch (error) {
-    console.error("An error occurred while generating the Excel report:", error);
-    throw error; 
+    console.error(
+      "An error occurred while generating the Excel report:",
+      error
+    );
+    throw error;
   }
 }
 
