@@ -112,7 +112,7 @@ class EchoBot extends ActivityHandler {
         
 
         // Validate if the conversation should be reset
-        if (context?.activity?.text?.toLowerCase()) {
+        if (userMessage) {
           const openaiResponse = await client.chat.completions.create({
             messages: [
               {
@@ -305,9 +305,12 @@ class EchoBot extends ActivityHandler {
                     {
                       role: 'user',
                       content: `${userMessage}
-                                        Return only:
-                                        Valid -> {"startDate": "DD-MM-YYYY", "endDate": "DD-MM-YYYY"}
-                                        Invalid -> "no"`,
+                      Return only:
+                      Valid -> {"startDate": "DD-MM-YYYY", "endDate": "DD-MM-YYYY"}
+                      Invalid -> "no"`
+                    // content:`${userMessage}
+                    //         Return only valid JSON 
+                    //         {"startDate": "DD-MM-YYYY", "endDate": "DD-MM-YYYY"} or "no". No extra text.`
                     },
                   ],
                   model: 'gpt-4',
