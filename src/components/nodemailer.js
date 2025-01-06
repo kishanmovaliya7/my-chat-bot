@@ -72,9 +72,14 @@ async function mailerFunction(iterator) {
     // const userMessage = `Create a join sql query using unique field from ${reportName} tables and return only this ${abc} `;
 
     // const userMessage = `Create a join sql query using unique field from ${reportName} tables and start date is greater then or eqaul to ${report.StartDate} and end date is less then or eqaul to ${report.EndDate} and Class of Business is ${report.ClassOfBusiness} and Original Currency Code is ${report.OriginalCurrencyCode} and return only this ${report.Field} `;
+    console.log("reportName", reportName);
+    console.log("report", report);
     
-    const userMessage = `${reportName.split(',').length > 1 ? 'Create a join sql query using unique field' : 'Create a sql query'} from ${reportName} tables ${ report?.startDate && `and start date is greater then or eqaul to  ${ report?.startDate }` } ${ report?.EndDate && `and end date is less then or eqaul to ${ report?.EndDate }` } ${ (report?.ClassOfBusiness || report?.business) && `and Class of Business is ${ report?.ClassOfBusiness || report?.business }` } ${ (report?.OriginalCurrencyCode || report?.currency) && `and Original Currency Code is ${ report?.OriginalCurrencyCode || report?.currency }` }  and return only this ${ field }`;
+    
+    const userMessage = `${reportName.split(',').length > 1 ? 'Create a join sql query using unique field' : 'Create a sql query'} from ${reportName} tables ${ report?.StartDate && `and start date is greater then or eqaul to  ${ report?.StartDate }` } ${ report?.EndDate && `and end date is less then or eqaul to ${ report?.EndDate }` } ${ (report?.ClassOfBusiness || report?.business) && `and Class of Business is ${ report?.ClassOfBusiness || report?.business }` } ${ (report?.OriginalCurrencyCode || report?.currency) && `and Original Currency Code is ${ report?.OriginalCurrencyCode || report?.currency }` }  and return only this ${ report.Field }`;
 
+    console.log("|userMessage|", userMessage);
+    
 
   const sqlQuery = await generateSQl(userMessage);
   console.log("sqlQuery", sqlQuery);
