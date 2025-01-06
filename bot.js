@@ -649,6 +649,7 @@ class EchoBot extends ActivityHandler {
                 );
               }
             } catch (error) {
+              console.log(error)
               await context.sendActivity(
                 'Sorry, We could not process with your answer.'
               );
@@ -875,7 +876,7 @@ class EchoBot extends ActivityHandler {
                 state.currentStep = 17;
               } else if (ans === 'no') {
                 await context.sendActivity(
-                    `You will now receive the emails going forward. \n\n Have a great day!`
+                    `You will receive the emails going forward.  \n\n Thank you for using Fusion Assistant (smile). Have a nice day!`
                   )
               } else {
                 await context.sendActivity(
@@ -912,7 +913,7 @@ class EchoBot extends ActivityHandler {
               if (ans) {
                 await updateReport(filename, `emailLists="${ans}"`)
                 await context.sendActivity(
-                    `You will now receive the emails going forward. \n\n Have a great day!`
+                    `You will now receive the emails going forward. \n\n Thank you for using Fusion Assistant 😊. Have a nice day!`
                   )
                 state.currentStep = 1;
               } else {

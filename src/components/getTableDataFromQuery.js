@@ -95,7 +95,7 @@ const generateSQl = async (userMessage) => {
  
     const schemaDict = await getDatabaseInfo();
     const schemaString = formatDatabaseSchemaInfo(schemaDict);
-  
+
     const completion = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: userMessage }],
@@ -114,7 +114,7 @@ const generateSQl = async (userMessage) => {
                       query: {
                         type: 'string',
                         description: `
-                        SQL query extracting info to answer the user's question.
+                        SQLite query extracting info to answer the user's question.
                         SQL should be written using this database schema:
                         ${schemaString}
                           The query should be returned in plain text, not in JSON
@@ -128,7 +128,6 @@ const generateSQl = async (userMessage) => {
         ],
       tool_choice: 'auto'
     })
-  
     const queryCall = completion.choices[0]?.message?.tool_calls[0];
     if (queryCall) {
       const arguments = JSON.parse(queryCall.function.arguments);

@@ -3,7 +3,6 @@ const sqlite3 = require("sqlite3");
 const { generateSQl } = require("./getTableDataFromQuery");
 const { getExcelReportForEmail } = require("./getExcelReportForEmail");
 const { getPDFReportForEmail } = require("./getPDFReportForEmail");
-const { getAllColumns } = require("./selectFields");
 
 async function sendAnEmail(
   reportName,
