@@ -571,7 +571,7 @@ class EchoBot extends ActivityHandler {
                       role: 'user',
                       content: `Choose an option: ${fieldOptions} ${selectedOptions}
                                         User's answer: '${userMessage}'                                  
-                                        Return selected options as a comma-separated string, excluding any deselected ones. If a range (e.g., 1 to 10) is deselected, remove those fields from the selected values. Example: 'Territory, Insured, Start Date' if 'Policy Reference' and 'Original Insured' are deselected.`,
+                                        Return selected options as a comma-separated string, excluding any deselected ones. If a range (e.g., 1 to 10) is deselected, remove those fields from the selected values. Example: 'Territory, Insured, Start_Date' if 'Policy Reference' and 'Original Insured' are deselected.`,
                     },
                   ],
                   model: 'gpt-4',
@@ -811,7 +811,7 @@ class EchoBot extends ActivityHandler {
               }
               const filename = savedReport.filename;
               if (ans === 'yes') {
-                await updateReport(filename, `isConfirm=1`)
+                await updateReport(filename, `isConfirm=1`);
                 await AskforOtherEmailConfirmation(context);
                 state.currentStep = 15;
               } else if (ans === 'no') {

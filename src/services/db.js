@@ -58,7 +58,7 @@ const checkTableExists = async (tableName) => {
 const createTable = async (tableName, columns) => {
   const columnsDefinition = columns
     .map((col) => {
-      return `\`${col}\` TEXT`;
+      return `\`${col.trim().replace(/ /g, '_')}\` TEXT`;
     })
     .join(", ");
 
@@ -88,7 +88,7 @@ const importDataFromXlsx = async (xlsxFilePath) => {
       return;
     }
 
-    const columns = Object.keys(data[0]);
+    const columns = Object.keys(data[0])?.map(col => col.trim().replace(/ /g, '_'));
 
     const tableExists = await checkTableExists(tableName);
     if (tableExists) {
@@ -109,7 +109,7 @@ const importDataFromXlsx = async (xlsxFilePath) => {
     )}\`) VALUES (${placeholders})`;
 
     for (const row of data) {
-      const values = columns.map((col) => {
+      const values = Object.keys(data[0]).map((col) => {
         if (col.toLowerCase().includes("percentage") && row[col]) {
           return row[col] * 100 + "%";
         }
@@ -183,7 +183,7 @@ const addEntryToSaveReport = async () => {
       ClassOfBusiness: ["Property", "CAR", "VAT BOND"],
       OriginalCurrencyCode: ["EUR", "GBP"],
       Field:
-        "Policy.`Policy Reference`, Policy.`Original Insured`, Policy.`Territory`, Policy.`Insured`, Policy.`Start Date`, Policy.`Expiry Date`, Policy.`Class of Business`, Policy.`Original Currency Code`, Policy.`Exchange Rate`, Policy.`Limit of Liability`, Policy.`100% Gross Premium`, Policy.`Signed Line`, Policy.`Gross Premium Paid this Time `, Policy.`Gross Premium Paid this Time in Settlement Currency`, Policy.`Commission Percentage`, Policy.`Brokerage Percentage`, Policy.`Agreement Reference`, Policy.`Settlement Currency Code`, Policy.`Org or Personal`, Policy.`Insurer`, Policy.`Period`, Policy.`Year`",
+        "Policy.`Policy Reference`, Policy.`Original Insured`, Policy.`Territory`, Policy.`Insured`, Policy.`Start_Date`, Policy.`Expiry_Date`, Policy.`Class_of_Business`, Policy.`Original_Currency_Code`, Policy.`Exchange Rate`, Policy.`Limit of Liability`, Policy.`100% Gross Premium`, Policy.`Signed Line`, Policy.`Gross Premium Paid this Time `, Policy.`Gross Premium Paid this Time in Settlement Currency`, Policy.`Commission Percentage`, Policy.`Brokerage Percentage`, Policy.`Agreement Reference`, Policy.`Settlement Currency Code`, Policy.`Org or Personal`, Policy.`Insurer`, Policy.`Period`, Policy.`Year`",
     }),
     scheduler: "1 1 1 1 1",
     isDeleted: 0,

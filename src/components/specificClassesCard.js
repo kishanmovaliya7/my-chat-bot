@@ -3,11 +3,12 @@ const { query } = require('../services/db');
 const { generateSQl } = require('./getTableDataFromQuery');
 
 async function getOptionValue(ans) {
-    const riskCodeSelected = ans.includes('business') ? 'Class of Business' : 'Original Currency Code';
+    const riskCodeSelected = ans.includes('business') ? 'Class_of_Business' : 'Original_Currency_Code';
     try {
         const sql = await generateSQl(`give me list of ${riskCodeSelected}`);
 
         const rawDetails = await query(sql || `SELECT DISTINCT "${ riskCodeSelected }" FROM Policy`);
+
         return rawDetails;
     } catch (error) {
         console.error('Error:', error);
@@ -15,7 +16,7 @@ async function getOptionValue(ans) {
 }
 
 async function specificClassesCard(context, ans, parsedObject = '') {
-    const riskCodeSelected = ans.includes('business') ? 'Class of Business' : 'Original Currency Code';
+    const riskCodeSelected = ans.includes('business') ? 'Class_of_Business' : 'Original_Currency_Code';
 
     const options = await getOptionValue(ans);
 
