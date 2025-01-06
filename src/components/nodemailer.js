@@ -30,7 +30,7 @@ async function sendAnEmail(
   // Send an email
   const mailOptions = {
     from: "kishan@arisoft-technologies.com",
-    to: "jn.codistree@gmail.com",
+    to: email,
     subject: `${reportName} Report`,
     text: userMessage,
     attachments: [
