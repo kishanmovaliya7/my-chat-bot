@@ -108,6 +108,7 @@ class EchoBot extends ActivityHandler {
           []
         );
         const savedReport = await this.savedReportAccessor.get(context, {});
+        
 
         // Validate if the conversation should be reset
         if (userMessage === 'restart' || userMessage === 'start over') {
@@ -371,9 +372,7 @@ class EchoBot extends ActivityHandler {
               if (riskCode) {
                 ans = riskCode;
               } else {
-                const fieldOptions = fieldValues
-                  .flat()
-                  .map(
+                const fieldOptions = fieldValues[0].map(
                     (item, index) =>
                       `option${index + 1}: ${Object.values(item)[0]}`
                   );
@@ -381,9 +380,7 @@ class EchoBot extends ActivityHandler {
                   .flat()
                   .map((item) => Object.keys(item)[0])[0];
 
-                const selectedOptions = fieldValues
-                  .flat()
-                  .map(
+                const selectedOptions = fieldValues[0].map(
                     (item, index) =>
                       `If user select option${index + 1} then return only ${
                         Object.values(item)[0]
@@ -444,19 +441,18 @@ class EchoBot extends ActivityHandler {
               if (riskCode) {
                 ans = riskCode;
               } else {
-                const fieldOptions = fieldValues
-                  .flat()
-                  .map(
+             
+                
+                const fieldOptions = fieldValues[1].map(
                     (item, index) =>
                       `option${index + 1}: ${Object.values(item)[0]}`
                   );
+                  console.log('fieldOptions',fieldOptions);
                 const selectedColumnType = fieldValues
                   .flat()
                   .map((item) => Object.keys(item)[0])[0];
 
-                const selectedOptions = fieldValues
-                  .flat()
-                  .map(
+                const selectedOptions = fieldValues[1].map(
                     (item, index) =>
                       `If user select option${index + 1} then return only ${
                         Object.values(item)[0]
@@ -473,8 +469,8 @@ class EchoBot extends ActivityHandler {
                                         User answer: '${userMessage}'
                                         Instructions:
                                         - For "select all," return all options as JSON object.
-                                        - For multiple options: { "original_currency_code": "OIL & GAS PACKAGE, CAR" }.
-                                        - For a single option: { "original_currency_code": "OIL & GAS PACKAGE" }.
+                                        - For multiple options: { "original_currency_code": "GBP" }.
+                                        - For a single option: { "original_currency_code": "GBP" }.
                                         - Output only valid JSON object.`,
                     },
                   ],
