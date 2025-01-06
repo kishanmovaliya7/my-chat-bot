@@ -88,7 +88,7 @@ const importDataFromXlsx = async (xlsxFilePath) => {
       return;
     }
 
-    const columns = Object.keys(data[0])?.map(col => col.trim().replace(/ /g, '_'));
+    const columns = Object.keys(data[0])?.map(col => col.trim().replace(/ /g, '_').replace('100%','hundred_percentage'));
 
     const tableExists = await checkTableExists(tableName);
     if (tableExists) {
