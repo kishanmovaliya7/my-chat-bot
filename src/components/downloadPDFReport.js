@@ -5,7 +5,7 @@ const { jsPDF } = require('jspdf');
 const { CardFactory } = require('botbuilder');
 require('jspdf-autotable');
 
-// Function to create a unique file path in the 'public' folder
+// // Function to create a unique file path in the 'public' folder
 function getUniqueFilePath(basePath, fileName) {
     const ext = path.extname(fileName);
     const name = path.basename(fileName, ext);
@@ -24,13 +24,14 @@ function getUniqueFilePath(basePath, fileName) {
 }
 
 async function downloadPDFReport(context, selectedValues) {
+    // console.log('selectedValues',selectedValues);
     const ReportFromTable = await getReportData(selectedValues);
 
     try {
         const doc = new jsPDF();
 
         // Prepare column headers and rows
-        const columnHeaders = selectedValues.field.split(',');
+        const columnHeaders = ReportFromTable.length > 0 ? Object.keys(ReportFromTable[0]) : [];
         const tableData = ReportFromTable.map(row =>
             columnHeaders.map(header => String(row[header] || ''))
         );

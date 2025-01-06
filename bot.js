@@ -108,8 +108,6 @@ class EchoBot extends ActivityHandler {
         );
         const savedReport = await this.savedReportAccessor.get(context, {});
 
-        // console.log(JSON.stringify(context.activity))
-
         // Validate if the conversation should be reset
         if (userMessage === 'restart' || userMessage === 'start over') {
           await this.resetConversation(context, state);
@@ -151,7 +149,6 @@ class EchoBot extends ActivityHandler {
                 });
                 ans = openaiResponse.choices[0].message.content.trim();
               }
-              console.log(ans)
               if (context?.activity?.value?.data === 'new report') {
                 await sendReportTypeOptions(context);
                 savedReport.report = {};
@@ -209,7 +206,6 @@ class EchoBot extends ActivityHandler {
                   .includes('combine')
                   ? reportChoices.join(',')
                   : ans;
-                  console.log(savedReport.report)
                 if(savedReport.report?.reportName) {
                     await editOptions(context)
                     state.currentStep = 22;
@@ -417,7 +413,7 @@ class EchoBot extends ActivityHandler {
               }
 
               if (ans) {
-                selectedValues.riskCode = ans;
+                selectedValues.Business = ans;
                 if (savedReport.report?.reportName) {
                   await editOptions(context);
                   state.currentStep = 22;
@@ -433,7 +429,6 @@ class EchoBot extends ActivityHandler {
                 await context.sendActivity('Please select valid option');
               }
             } catch (error) {
-                console.log(error)
               await context.sendActivity(
                 'Sorry, We could not process with your answer.'
               );
@@ -503,7 +498,6 @@ class EchoBot extends ActivityHandler {
                 await context.sendActivity('Please select valid option');
               }
             } catch (error) {
-                console.log(error)
               await context.sendActivity(
                 'Sorry, We could not process with your answer.'
               );
@@ -588,7 +582,7 @@ class EchoBot extends ActivityHandler {
               if (ans) {
                 await generateReport(context);
                 selectedValues.field = ans;
-                state.currentStep = 9;
+                state.currentStep = 10;
               } else {
                 await context.sendActivity('Please select valid option');
               }
@@ -743,7 +737,6 @@ class EchoBot extends ActivityHandler {
                 );
               }
             } catch (error) {
-                console.log(error)
               await context.sendActivity(
                 'Sorry, We could not process with your answer.'
               );
@@ -910,7 +903,6 @@ class EchoBot extends ActivityHandler {
                 );
               }
             } catch (error) {
-                console.log(error)
               await context.sendActivity(
                 'Sorry, We could not process with your answer.'
               );
@@ -935,6 +927,7 @@ class EchoBot extends ActivityHandler {
                     startDate: filteredValue.StartDate,
                     endDate: filteredValue.EndDate,
                   });
+                selectedValues.Business = filteredValue.ClassOfBusiness;
                 selectedValues.riskCode = filteredValue.ClassOfBusiness
                   ? { class_of_business: filteredValue.ClassOfBusiness }
                   : {

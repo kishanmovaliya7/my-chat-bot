@@ -57,8 +57,7 @@ const insertValues = async (tableName, values) => {
 
     try {
         const response = await query(sql, Object.values(values));
-        console.log(response);
-        return response
+        return response;
     } catch (err) {
         return null;
     }
@@ -105,7 +104,6 @@ async function getSavedReport() {
 async function getSingleSavedReport(selectedSavedReport) {
     try {
         const singleData = await query('SELECT * FROM SavedReport WHERE Name = ?', [selectedSavedReport]);
-        console.log(singleData)
         return singleData;
     } catch (error) {
         return null;
@@ -178,7 +176,6 @@ async function saveReport(context, filename, selectedValues) {
 }
 
 const updateReport = async (filename, field) => {
-    console.log(`update SavedReport set ${field} where Name = "${filename}"`)
     const response = await query(`update SavedReport set ${field} where Name = "${filename}"`)
     return response 
 }

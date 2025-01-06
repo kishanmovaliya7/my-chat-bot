@@ -1,56 +1,15 @@
 const { query } = require('../services/db');
+const { generateSQl } = require('./getTableDataFromQuery');
 
 async function getReportData(selectedValues) {
-    try {
-        const { period, riskCode, field } = selectedValues;
+    const { reportType, period, Business, riskCode, field } = selectedValues;
 
-        const fieldSelection = field.split(',')
-            .map(f => `"${ f.trim() }"`)
-            .join(', ');
+    const userMessage = `Create a join sql query using unique field from ${ reportType } tables ${ period?.startDate && `and start date is ${ period?.startDate }` } ${ period?.endDate && `and end date is ${ period?.endDate }` } ${ (Business?.class_of_business || Business?.business) && `and Class of Business is ${ Business?.class_of_business || Business?.business }` } ${ (riskCode?.original_currency_code || riskCode?.currency) && `and Original Currency Code is ${ riskCode?.original_currency_code || riskCode?.currency }` }  and return only this ${ field }`;
 
-        let dateFilter = '';
+    const sqlQuery = await generateSQl(userMessage);
+    const response = await query(sqlQuery);
 
-        if (period && period.startDate && period.endDate) {
-            const formatDate = (dateString) => {
-                const date = new Date(dateString);
-                return date.toISOString().split('T')[0];
-            };
-
-            const formattedStartDate = formatDate(period.startDate);
-            const formattedEndDate = formatDate(period.endDate);
-
-            dateFilter = `WHERE "Start Date" BETWEEN '${ formattedStartDate }' AND '${ formattedEndDate }'`;
-        }
-
-        if (riskCode?.class_of_business) {
-            const formattedRiskCode = riskCode.class_of_business
-                .split(',')
-                .map(item => `"${ item.trim() }"`)
-                .join(', ');
-
-            dateFilter += period
-                ? ` AND "Class of Business" IN (${ formattedRiskCode })`
-                : `WHERE "Class of Business" IN (${ formattedRiskCode })`;
-        }
-
-        if (riskCode?.original_currency_code) {
-            const formattedRiskCode = riskCode.original_currency_code
-                .split(',')
-                .map(item => `'${ item.trim() }'`)
-                .join(', ');
-
-            dateFilter += period || riskCode.class_of_business
-                ? ` AND "Original Currency Code" IN (${ formattedRiskCode })`
-                : `WHERE "Original Currency Code" IN (${ formattedRiskCode } )`;
-        }
-
-        const queryStr = `SELECT ${ fieldSelection } FROM ${ selectedValues.reportType } ${ dateFilter }`;
-        const reportData = await query(queryStr);
-        return reportData;
-    } catch (error) {
-        console.error('Error:', error);
-        throw error;
-    }
+    return response;
 }
 
 module.exports = { getReportData };
