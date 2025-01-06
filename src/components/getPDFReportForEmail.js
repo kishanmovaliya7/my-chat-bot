@@ -1,18 +1,27 @@
 const { jsPDF } = require("jspdf");
 require("jspdf-autotable");
 
-async function getPDFReportForEmail(selectedValues) {
+async function getPDFReportForEmail(selectedValues, defaultHeader) {
   try {
     const doc = new jsPDF();
-
-    // Check if selectedValues is empty
+    
     if (!selectedValues || selectedValues.length === 0) {
       doc.setFontSize(14);
-      doc.text("No data available", 10, 10);
+      doc.setFontSize(14);
+      doc.text("Report", 10, 10);
+
+      doc.autoTable({
+        styles: {
+          cellPadding: 0.5,
+          fontSize: 3,
+        },
+        head: defaultHeader,
+        body: [],
+        startY: 20,
+        theme: "grid",
+      });
     } else {
       const columnHeaders = Object.keys(selectedValues[0]);
-
-      // Ensure all cells handle undefined/null properly
       const tableData = selectedValues.map((row) =>
         columnHeaders.map((header) => {
           const value = row[header];

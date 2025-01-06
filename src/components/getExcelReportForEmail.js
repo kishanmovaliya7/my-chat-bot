@@ -1,19 +1,20 @@
 const ExcelJS = require("exceljs");
 
-async function getExcelReportForEmail(selectedValues) {
+async function getExcelReportForEmail(selectedValues, defaultHeader) {
   try {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Report");
 
     // Check if selectedValues is empty
     if (!selectedValues || selectedValues.length === 0) {
-      sheet.addRow(["No data available"]);
+      // sheet.addRow(["No data available"]);
+      sheet.addRow(defaultHeader);
     } else {
-      // Add column headers
+      // column header
       const columnHeaders = Object.keys(selectedValues[0]);
       sheet.addRow(columnHeaders);
 
-      // Add data rows
+      // data rows
       selectedValues.forEach((row) => {
         const rowData = columnHeaders.map((header) => {
           const value = row[header];

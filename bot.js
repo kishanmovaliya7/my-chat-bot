@@ -541,6 +541,7 @@ class EchoBot extends ActivityHandler {
                   selectedValues.reportType
                 );
                 const result = AllFields.join(', ');
+                selectedValues.defaultColumn = result;
                 selectedValues.field = result;
                 await generateReport(context);
                 state.currentStep = 9;
@@ -626,6 +627,7 @@ class EchoBot extends ActivityHandler {
                 ans = openaiResponse.choices[0].message.content?.toLowerCase().trim();
               }
               if (ans === 'pdf' || ans === 'excel') {
+                selectedValues.type = ans;
                 ans === 'pdf'
                   ? await downloadPDFReport(context, selectedValues)
                   : await downloadExcelReport(context, selectedValues);

@@ -145,7 +145,7 @@ async function editReport(context, filename, selectedValues) {
 }
 
 async function saveReport(context, filename, selectedValues) {
-    const { reportType, period, riskCode, field } = selectedValues;
+    const { reportType, period, riskCode, field, type, defaultColumn } = selectedValues;
     const tableName = 'SavedReport';
 
     const flattenedValues = {
@@ -163,6 +163,8 @@ async function saveReport(context, filename, selectedValues) {
         isDeleted: false,
         emailLists: "",
         isConfirm: false,
+        downloadType: type,
+        defaultColumns: defaultColumn,
         created_at: new Date()
     };
 

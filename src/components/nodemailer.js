@@ -3,8 +3,15 @@ const sqlite3 = require("sqlite3");
 const { generateSQl } = require("./getTableDataFromQuery");
 const { getExcelReportForEmail } = require("./getExcelReportForEmail");
 const { getPDFReportForEmail } = require("./getPDFReportForEmail");
+const { getAllColumns } = require("./selectFields");
 
-async function sendAnEmail(reportName, email, excelBuffer, type) {
+async function sendAnEmail(
+  reportName,
+  email,
+  bufferData,
+  fileName,
+  downloadType
+) {
   const userMessage = `Hello, Please find the attached report for ${reportName}.\n\nBest regards,\nYour Team`;
 
   const transporter = nodemailer.createTransport({
@@ -23,24 +30,32 @@ async function sendAnEmail(reportName, email, excelBuffer, type) {
   // Send an email
   const mailOptions = {
     from: "kishan@arisoft-technologies.com",
-    to: email,
+    to: "jn.codistree@gmail.com",
     subject: `${reportName} Report`,
     text: userMessage,
     attachments: [
       {
-        filename: `${type === "excel" ? "report.xlsx" : "report.pdf"}`,
-        content: excelBuffer,
+        filename: fileName,
+        content: bufferData,
         contentType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          downloadType === "excel"
+            ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            : "application/pdf",
       },
     ],
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully: ", {res: info.response, email: email});
+    console.log("Email sent successfully: ", {
+      res: info.response,
+      email: email,
+    });
+
+    return { success: true, data: info.response };
   } catch (error) {
     console.error("Error sending email: ", error);
+    return { success: false, error: error };
   }
 }
 
@@ -66,7 +81,7 @@ const query = (sql, params = []) => {
 };
 
 async function mailerFunction(iterator) {
-  const { reportName, reportFilter, emailLists } = iterator;
+  const { Name, reportName, reportFilter, emailLists, downloadType, defaultColumns } = iterator;
   const report = JSON.parse(reportFilter);
 
   // const userMessage = `Create a join sql query using unique field from ${reportName} tables and return only this ${abc} `;
@@ -74,28 +89,54 @@ async function mailerFunction(iterator) {
   // const userMessage = `Create a join sql query using unique field from ${reportName} tables and start date is greater then or eqaul to ${report.StartDate} and end date is less then or eqaul to ${report.EndDate} and Class of Business is ${report.ClassOfBusiness} and Original Currency Code is ${report.OriginalCurrencyCode} and return only this ${report.Field} `;
 
   // const userMessage = `Create a join sql query using unique field from ${ reportName } tables ${ report?.StartDate && `and start date is ${ report?.StartDate }` } ${ report?.EndDate && `and end date is ${ report?.EndDate }` } ${ (Business?.ClassOfBusiness || Business?.business) && `and Class of Business is ${ Business?.class_of_business || Business?.business }` } ${ (riskCode?.OriginalCurrencyCode || riskCode?.currency) && `and Original Currency Code is ${ riskCode?.OriginalCurrencyCode || riskCode?.currency }` }  and return only this ${ field }`;
-  
 
-  const userMessage =  `${reportName.split(',').length > 1 
-    ? 'Create a join sql query using unique field' 
-    : 'Create a sql query'} from ${reportName} tables ${report?.StartDate 
-    ? `and start date is greater than or equal to ${report?.StartDate}` 
-    : ''} ${report?.EndDate 
-    ? `and end date is less than or equal to ${report?.EndDate}` 
-    : ''} ${ (report?.ClassOfBusiness || report?.business) 
-    ? `and Class of Business is ${report?.ClassOfBusiness || report?.business}` 
-    : ''} ${ (report?.OriginalCurrencyCode || report?.currency) 
-    ? `and Original Currency Code is ${report?.OriginalCurrencyCode || report?.currency}` 
-    : ''} and return only this ${report.Field}`;
+  const userMessage = `${
+    reportName.split(",").length > 1
+      ? "Create a join sql query using unique field"
+      : "Create a sql query"
+  } from ${reportName} tables ${
+    report?.StartDate
+      ? `and start date is greater than or equal to ${report?.StartDate}`
+      : ""
+  } ${
+    report?.EndDate
+      ? `and end date is less than or equal to ${report?.EndDate}`
+      : ""
+  } ${
+    report?.ClassOfBusiness || report?.business
+      ? `and Class of Business is ${
+          report?.ClassOfBusiness || report?.business
+        }`
+      : ""
+  } ${
+    report?.OriginalCurrencyCode || report?.currency
+      ? `and Original Currency Code is ${
+          report?.OriginalCurrencyCode || report?.currency
+        }`
+      : ""
+  } and return only this ${report.Field}`;
 
   const sqlQuery = await generateSQl(userMessage);
   console.log("sqlQuery**:-", sqlQuery);
   const policyData = await query(sqlQuery);
+  
 
-  const excelBuffer = await getExcelReportForEmail(policyData);
-  // const pdfBuffer = await getPDFReportForEmail(policyData);
+  let bufferData;
+  let fileName;
 
-  await sendAnEmail(reportName, emailLists, excelBuffer, "excel");
+  
+  let input = defaultColumns;
+  let defaultHeader = input.replace(/policy\./g, "");
+
+  if (downloadType === "excel") {
+    bufferData = await getExcelReportForEmail(policyData, defaultHeader);
+    fileName = `${Name}.xlsx`;
+  } else {
+    bufferData = await getPDFReportForEmail(policyData, defaultHeader);
+    fileName = `${Name}.pdf`;
+  }
+
+  await sendAnEmail(reportName, emailLists, bufferData, fileName, downloadType);
 }
 
 module.exports = mailerFunction;

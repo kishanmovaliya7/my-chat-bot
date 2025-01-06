@@ -6,7 +6,7 @@ async function promptForFilters(context) {
         body: [
             {
                 type: 'TextBlock',
-                text: 'I will now ask you a series of questions to set filters and ensure I can provide the right report you\'re looking for. Please help me by answering these six questions.',
+                text: 'I will now ask you a series of questions to set filters and ensure I can provide the right report you\'re looking for. Please help me by answering these five questions.',
                 wrap: true
             }
         ],
