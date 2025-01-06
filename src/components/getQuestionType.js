@@ -4,9 +4,10 @@ async function getQuestionType(context) {
     const buttons = [
         {
             type: 'messageBack',
-            title: 'Question on the data with an answer',
+            title: 'Ask a Question',
+            text: 'q&a',
             value: {step: 'step1', data:'q&a'},
-            displayText: 'Question and Answer',
+            displayText: 'Ask a Question',
         },
         {
             type: 'messageBack',

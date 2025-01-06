@@ -171,7 +171,7 @@ async function AskforSchedulerConfirmation(context) {
                 displayText: 'No'
             }
         ],
-        { text: 'Would you like to schedule this to run on specific dates?' }
+        { text: 'Would you like to run this report at set dates every month?' }
     );
     await context.sendActivity({ attachments: [heroCard] });
 }

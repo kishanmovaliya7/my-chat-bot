@@ -22,7 +22,7 @@ async function sendRiskCodesOptions(context) {
         '',
         undefined,
         buttons,
-        { text: 'Question 2 of 5: \n\n Would you like a specific class or a group of risk codes??\n\nList to Choose From:' }
+        { text: 'Question 2 of 5: \n\n Would you like a specific or group of classes?\n' }
     );
 
     // Send the card as a message
