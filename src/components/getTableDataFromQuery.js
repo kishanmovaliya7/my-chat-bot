@@ -1,5 +1,6 @@
 const { AzureOpenAI } = require('openai');
-const { query } = require('../services/db');
+const sqlite3 = require("sqlite3");
+// const { query } = require('../services/db');
 
 // Azure OpenAI Configuration
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
@@ -25,6 +26,29 @@ async function connectToDatabase() {
     throw new Error('Database connection failed.');
   }
 }
+
+
+const db = new sqlite3.Database('rawData.db', (err) => {
+    if (err) {
+        console.log('Error Occurred - ' + err.message);
+    } else {
+        console.log('Database Connected');
+    }
+});
+
+
+const query = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve(rows);
+        });
+    });
+};
+
 
 // Function to fetch database schema
 async function getDatabaseInfo() {

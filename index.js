@@ -14,7 +14,7 @@ const {
 } = require('botbuilder');
 
 const { EchoBot } = require('./bot');
-const { importDataFromXlsx, query, addEntryToSaveReport, runAllCronJobs } = require('./src/services/db');
+const { importDataFromXlsx, query, addEntryToSaveReport, runAllCronJobs, dropTable } = require('./src/services/db');
 
 // Create HTTP server
 const server = restify.createServer();
@@ -30,7 +30,8 @@ const tableName = 'rawDataTable';
 
    
 // addEntryToSaveReport();
-// runAllCronJobs();
+runAllCronJobs();
+// dropTable()
 
 server.listen(process.env.port || process.env.PORT || 3978, async() => {
     // const aa = await query('select * from savedReports;');
