@@ -15,7 +15,7 @@ async function getPDFReportForEmail(selectedValues, defaultHeader) {
           cellPadding: 0.5,
           fontSize: 3,
         },
-        head: defaultHeader,
+        head: [defaultHeader],
         body: [],
         startY: 20,
         theme: "grid",
