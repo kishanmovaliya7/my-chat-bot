@@ -112,10 +112,26 @@ class EchoBot extends ActivityHandler {
         
 
         // Validate if the conversation should be reset
-        if (userMessage === 'restart' || userMessage === 'start over') {
-          await this.resetConversation(context, state);
-          await getQuestionType(context);
-          return await next();
+        if (context?.activity?.text?.toLowerCase()) {
+          const openaiResponse = await client.chat.completions.create({
+            messages: [
+              {
+                role: 'user',
+                content: `Does the following message indicate that the user wants to restart the conversation or begin a new topic? Please respond with 'yes' if the user's message expresses a clear intention to restart or begin again, and 'no' if it does not. Ignore if the user just types 'yes' or similar short answers. The message is: "${userMessage}`
+
+              },
+            ],
+            model: 'gpt-4',
+            max_tokens: 2,
+          });
+         const ans = openaiResponse.choices[0].message.content.trim();
+         
+          await context.sendActivity('');
+          if (ans.toLowerCase() === 'yes') {
+              await this.resetConversation(context, state);
+              await getQuestionType(context);
+              return await next();
+          } 
         }
 
         const stepCount = context.activity.value?.step;
@@ -123,7 +139,6 @@ class EchoBot extends ActivityHandler {
           state.currentStep =
             parseInt(stepCount.slice(4)) 
         }
-        console.log("state.currentStep", state.currentStep);
         
         switch (state.currentStep) {
           case 1:
@@ -379,9 +394,6 @@ class EchoBot extends ActivityHandler {
                     (item, index) =>
                       `option${index + 1}: ${Object.values(item)[0]}`
                   );
-                const selectedColumnType = fieldValues
-                  .flat()
-                  .map((item) => Object.keys(item)[0])[0];
 
                 const selectedOptions = fieldValues[0].map(
                     (item, index) =>
@@ -450,10 +462,6 @@ class EchoBot extends ActivityHandler {
                     (item, index) =>
                       `option${index + 1}: ${Object.values(item)[0]}`
                   );
-                  console.log('fieldOptions',fieldOptions);
-                const selectedColumnType = fieldValues
-                  .flat()
-                  .map((item) => Object.keys(item)[0])[0];
 
                 const selectedOptions = fieldValues[1].map(
                     (item, index) =>
@@ -487,7 +495,6 @@ class EchoBot extends ActivityHandler {
 
               if (ans) {
                 selectedValues.riskCode = ans;
-                console.log('ans---------', ans);
                 
                 if (savedReport.report?.reportName) {
                   await editOptions(context);
@@ -628,7 +635,7 @@ class EchoBot extends ActivityHandler {
                         state.currentStep = 22;
                       } else {
                         await saveOptions(context);
-                        state.currentStep = 10;
+                        state.currentStep = 11;
                       }
                 
               } else {
@@ -669,7 +676,7 @@ class EchoBot extends ActivityHandler {
               }
               if (ans === 'yes') {
                 await savedFileName(context);
-                state.currentStep = 11;
+                state.currentStep = 12;
               } else if (ans === 'no') {
                 await context.sendActivity('Thank you!');
               } else {
@@ -687,13 +694,13 @@ class EchoBot extends ActivityHandler {
           case 12: {
             try {
                 const filename = `${ context.activity.value.filename }-${ new Date().getTime() }`;
-                const aaa = await saveReport(context,filename, selectedValues);
+                await saveReport(context,filename, selectedValues);
                 savedReport.filename = filename;
                 const report = getSingleSavedReport(filename)
                 if(report) {
                     savedReport.report = report[0];
                     await AskforSchedulerConfirmation(context);
-                    state.currentStep = 12;
+                    state.currentStep = 13;
                 } else {
                     await context.sendActivity(`Something went wrong! Would you please try again after some time?`)
                 }
@@ -729,7 +736,7 @@ class EchoBot extends ActivityHandler {
              
               if (ans === 'yes') {
                 await schedulerForm(context);
-                state.currentStep = 13;
+                state.currentStep = 14;
               } else if (ans === 'no') {
                
                 await context.sendActivity('Thank you!');
@@ -774,7 +781,7 @@ class EchoBot extends ActivityHandler {
               if (ans) {
                 await updateReport(filename, `scheduler="${ans}"`)
                 await AskforEmailConfirmation(context);
-                state.currentStep = 14;
+                state.currentStep = 15;
               } else {
                 await context.sendActivity(
                   `Apologies, I wasn't able to generate the cron job with the provided input. Please try submitting the form again`
@@ -813,12 +820,12 @@ class EchoBot extends ActivityHandler {
               const filename = savedReport.filename;
               if (ans === 'yes') {
                 await updateReport(filename, `isConfirm=1`);
-               const res = await runCronJobByFileName(filename);
-               if (!res.success) {
-                await context.sendActivity(res.message);
-               }
+                const res = await runCronJobByFileName(filename);
+                if (!res.success) {
+                 await context.sendActivity(res.message);
+                }
                 await AskforOtherEmailConfirmation(context);
-                state.currentStep = 15;
+                state.currentStep = 16;
               } else if (ans === 'no') {
                 await updateReport(filename, `isConfirm=0`)
                 await context.sendActivity('Thank you!');
@@ -860,7 +867,7 @@ class EchoBot extends ActivityHandler {
               }
               if (ans === 'yes') {
                 await askForToEmail(context);
-                state.currentStep = 16;
+                state.currentStep = 17;
               } else if (ans === 'no') {
                 await context.sendActivity(
                     `You will now receive the emails going forward. \n\n Have a great day!`
@@ -1030,7 +1037,7 @@ class EchoBot extends ActivityHandler {
         await this.optionFieldValueAccessor.set(context, fieldValues);
         await this.savedReportAccessor.set(context, savedReport);
         await next();
-      } catch (error) {
+      } catch (error) {        
         await context.sendActivity("An error occurred. Let's start over.");
         await this.resetConversation(
           context,
@@ -1057,6 +1064,9 @@ class EchoBot extends ActivityHandler {
     state.currentStep = 1;
     await this.selectedValuesAccessor.set(context, {});
     await this.conversationState.saveChanges(context);
+    await this.optionFieldValueAccessor.set(context,[]);
+    await this.savedReportAccessor.set(context,{})
+
   }
 }
 
