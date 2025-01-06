@@ -424,7 +424,7 @@ class EchoBot extends ActivityHandler {
                     const fields = await getOptionValue('currency');
                     fieldValues.push(fields);
     
-                    state.currentStep = 8;
+                    state.currentStep = 7;
                 }
               } else {
                 await context.sendActivity('Please select valid option');
@@ -488,6 +488,8 @@ class EchoBot extends ActivityHandler {
 
               if (ans) {
                 selectedValues.riskCode = ans;
+                console.log('ans---------', ans);
+                
                 if (savedReport.report?.reportName) {
                   await editOptions(context);
                   state.currentStep = 22;
