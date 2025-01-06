@@ -224,7 +224,6 @@ const runAllCronJobs = async () => {
   }
 };
 
-
 const runCronJobByFileName = async (field) => {
   const sql = `SELECT * FROM SavedReport WHERE Name = ${field}`;
   try {
@@ -240,9 +239,16 @@ const runCronJobByFileName = async (field) => {
       { name: `Schedule-${data.Name}`, timezone: "America/New_York" }
     );
 
-    return data;
+    return {
+      success: true,
+      data: data,
+    };
   } catch (err) {
     console.error("Error running cron job:", err);
+    return {
+      success: false,
+      message: err.message || "Sorry, We could not process with your answer",
+    };
   }
 };
 

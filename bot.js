@@ -56,6 +56,7 @@ const {
   AskforEmailConfirmation,
   askForToEmail,
 } = require('./src/components/scheduleOptions');
+const { runCronJobByFileName } = require('./src/services/db');
 
 // Azure OpenAI Configuration
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
@@ -812,6 +813,10 @@ class EchoBot extends ActivityHandler {
               const filename = savedReport.filename;
               if (ans === 'yes') {
                 await updateReport(filename, `isConfirm=1`);
+               const res = await runCronJobByFileName(filename);
+               if (!res.success) {
+                await context.sendActivity(res.message);
+               }
                 await AskforOtherEmailConfirmation(context);
                 state.currentStep = 15;
               } else if (ans === 'no') {

@@ -1,4 +1,4 @@
-const { query, runCronJobByFileName } = require('../services/db');
+const { query } = require('../services/db');
 
 const checkTableExists = async (tableName) => {
     const sql = `PRAGMA table_info(${ tableName })`;
@@ -177,7 +177,6 @@ async function saveReport(context, filename, selectedValues) {
 
 const updateReport = async (filename, field) => {
     const response = await query(`update SavedReport set ${field} where Name = "${filename}"`)
-    await runCronJobByFileName(field);
     return response 
 }
 module.exports = { saveReport, getSavedReport, getSingleSavedReport, editReport, updateReport };
