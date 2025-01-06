@@ -35,7 +35,7 @@ const createTable = async (tableName, columns) => {
         .map(([colName, colValue]) => `\`${ colName }\` ${ inferColumnType(colValue) }`)
         .join(', ');
 
-    const sql = `CREATE TABLE IF NOT EXISTS ${ tableName } (${ columnsDefinition })`;
+    const sql = `CREATE TABLE ${ tableName } (${ columnsDefinition })`;
 
     try {
         await query(sql);
@@ -128,7 +128,7 @@ async function editReport(context, filename, selectedValues) {
         scheduler: '',
         isDeleted: false,
         isConfirm: false,
-        emailLists: [],
+        emailLists: "",
         created_at: new Date()
     };
 
@@ -161,7 +161,7 @@ async function saveReport(context, filename, selectedValues) {
         },
         scheduler: '',
         isDeleted: false,
-        emailLists: [],
+        emailLists: "",
         isConfirm: false,
         created_at: new Date()
     };

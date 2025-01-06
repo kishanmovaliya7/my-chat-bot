@@ -225,26 +225,28 @@ const runAllCronJobs = async () => {
 };
 
 const runCronJobByFileName = async (field) => {
-  const sql = `SELECT * FROM SavedReport WHERE Name = ${field}`;
+  const sql = `SELECT * FROM SavedReport WHERE Name = '${field}'`;
   try {
     const data = await query(sql);
-    console.log("data", data.Name);
+    console.log("data", data, JSON.stringify(data));
+    if(data.length) {
+      cron.schedule(
+        data[0].scheduler,
+        async () => {
+          console.log(data[0].Name, "Called at*", new Date());
+          await mailerFunction(data[0]);
+        },
+        { name: `Schedule-${data[0].Name}`, timezone: "America/New_York" }
+      );
+    }
 
-    cron.schedule(
-      data.scheduler,
-      async () => {
-        console.log(data.Name, "Called at*", new Date());
-        await mailerFunction(data);
-      },
-      { name: `Schedule-${data.Name}`, timezone: "America/New_York" }
-    );
 
     return {
       success: true,
       data: data,
     };
   } catch (err) {
-    console.error("Error running cron job:", err);
+    console.error("Error running cron job:", err, sql);
     return {
       success: false,
       message: err.message || "Sorry, We could not process with your answer",
