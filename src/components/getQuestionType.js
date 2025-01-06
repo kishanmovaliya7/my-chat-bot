@@ -21,7 +21,7 @@ async function getQuestionType(context) {
         '',
         undefined,
         buttons,
-        { text: 'Welcome to Fusion Assistant! \n\n How can I help you get started today?' }
+        { text: 'Welcome to Fusion Assistant! \n\n Hey there! 😊 How can I assist you today?' }
     );
 
     await context.sendActivity({
