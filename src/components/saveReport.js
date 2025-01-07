@@ -111,7 +111,7 @@ async function getSingleSavedReport(selectedSavedReport) {
 }
 
 async function editReport(context, filename, selectedValues) {
-    const { reportType, period, riskCode, field } = selectedValues;
+    const { reportType, period, riskCode, Business, field } = selectedValues;
     const tableName = 'SavedReport';
 
     // Flatten the values to match the columns in the database
@@ -121,7 +121,7 @@ async function editReport(context, filename, selectedValues) {
         reportFilter: {
             StartDate: period ? period.startDate : null,
             EndDate: period ? period.endDate : null,
-            ClassOfBusiness: riskCode ? riskCode.class_of_business || riskCode.business : null,
+            ClassOfBusiness: Business ? Business?.class_of_business || Business?.business : null,
             OriginalCurrencyCode: riskCode ? riskCode.original_currency_code || riskCode.currency : null,
             Field: field
         },
@@ -145,7 +145,8 @@ async function editReport(context, filename, selectedValues) {
 }
 
 async function saveReport(context, filename, selectedValues) {
-    const { reportType, period, riskCode, field, type, defaultColumn } = selectedValues;
+    const { reportType, period, riskCode, Business, field, type, defaultColumn } = selectedValues;
+
     const tableName = 'SavedReport';
 
     const flattenedValues = {
@@ -155,8 +156,8 @@ async function saveReport(context, filename, selectedValues) {
         reportFilter: {
             StartDate: period ? period?.startDate : null,
             EndDate: period ? period?.endDate : null,
-            ClassOfBusiness: riskCode ? riskCode?.class_of_business : null,
-            OriginalCurrencyCode: riskCode ? riskCode?.original_currency_code : null,
+            ClassOfBusiness: Business ? Business?.class_of_business || Business?.business : null,
+            OriginalCurrencyCode: riskCode ? riskCode?.original_currency_code || riskCode.currency : null,
             Field: field
         },
         scheduler: '',

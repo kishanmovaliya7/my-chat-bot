@@ -947,9 +947,7 @@ class EchoBot extends ActivityHandler {
                     endDate: filteredValue.EndDate,
                   });
                 selectedValues.Business = filteredValue.ClassOfBusiness;
-                selectedValues.riskCode = filteredValue.ClassOfBusiness
-                  ? { class_of_business: filteredValue.ClassOfBusiness }
-                  : {
+                selectedValues.riskCode = {
                       original_currency_code:
                         filteredValue.OriginalCurrencyCode,
                     };
