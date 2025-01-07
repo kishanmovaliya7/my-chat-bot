@@ -28,45 +28,46 @@ async function downloadExcelReport(context, selectedValues) {
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('Report');
 
-        sheet.addRow(Object.keys(ReportFromTable[0]));
-
-        ReportFromTable.forEach((row) => {
-            const values = Object.values(row).map(value =>
-                value === null || value === undefined ? '' : value
-            );
-            sheet.addRow(values);
-        });
-
-        const publicDir = path.join(__dirname, '..', '..', 'public');
-        if (!fs.existsSync(publicDir)) {
-            fs.mkdirSync(publicDir);
-        }
-
-        const { filePath, fileName } = getUniqueFilePath(publicDir, 'report.xlsx');
-
-        await workbook.xlsx.writeFile(filePath);
-
-        const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
-
-        const buttons = [
-            {
-                type: 'openUrl',
-                title: 'Download Report',
-                value: downloadUrl
+        if(ReportFromTable.length) {
+            sheet.addRow(Object.keys(ReportFromTable[0]));
+    
+            ReportFromTable.forEach((row) => {
+                sheet.addRow(Object.values(row));
+            });
+    
+            const publicDir = path.join(__dirname, '..', '..', 'public');
+            if (!fs.existsSync(publicDir)) {
+                fs.mkdirSync(publicDir);
             }
-        ];
-
-        const heroCard = CardFactory.heroCard(
-            '',
-            undefined,
-            buttons,
-            { text: 'Your report is ready! \n\n Click the button below to download your report.' }
-        );
-
-        await context.sendActivity({
-            type: 'message',
-            attachments: [heroCard]
-        });
+    
+            const { filePath, fileName } = getUniqueFilePath(publicDir, 'report.xlsx');
+    
+            await workbook.xlsx.writeFile(filePath);
+    
+            const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
+    
+            const buttons = [
+                {
+                    type: 'openUrl',
+                    title: 'Download Report',
+                    value: downloadUrl
+                }
+            ];
+    
+            const heroCard = CardFactory.heroCard(
+                '',
+                undefined,
+                buttons,
+                { text: 'Your report is ready! \n\n Click the button below to download your report.' }
+            );
+    
+            await context.sendActivity({
+                type: 'message',
+                attachments: [heroCard]
+            });
+        } else {
+            await context.sendActivity('No matching records found for your selected filter. Please adjust your filter criteria and try again!');
+        }
     } catch (error) {
         await context.sendActivity('An error occurred while downloading the Excel report.');
     }

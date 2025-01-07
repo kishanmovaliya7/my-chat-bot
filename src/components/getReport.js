@@ -32,82 +32,21 @@ async function checkColumnExists(tableName, columnName) {
 
 async function getReportData(selectedValues) {
     const { reportType, period, Business, riskCode, field } = selectedValues;
-    const ReportLength = reportType?.split(',');
 
-    // Check if Start_Date exists in each table
-    const whereClauses = [];
-
-    if (period?.startDate) {
-        if (ReportLength.length > 1) {
-            for (const table of ReportLength) {
-                const columnExists = await checkColumnExists(table, 'Start_Date');
-                if (columnExists) {
-                    whereClauses.push(`and Start_Date = '${ period.startDate }'`);
-                }
-            }
-        } else {
-            const columnExists = await checkColumnExists(reportType, 'Start_Date');
-            if (columnExists) {
-                whereClauses.push(`and Start_Date = '${ period.startDate }'`);
-            }
-        }
-    }
-
-    if (period?.endDate) {
-        if (ReportLength.length > 1) {
-            for (const table of ReportLength) {
-                const columnExists = await checkColumnExists(table, 'Expiry_Date');
-                if (columnExists) {
-                    whereClauses.push(`and Expiry_Date = '${ period.endDate }'`);
-                }
-            }
-        } else {
-            const columnExists = await checkColumnExists(reportType, 'Expiry_Date');
-            if (columnExists) {
-                whereClauses.push(`and Expiry_Date = '${ period.endDate }'`);
-            }
-        }
-    }
-
-    if (Business?.class_of_business || Business?.business) {
-        if (ReportLength.length > 1) {
-            for (const table of ReportLength) {
-                const columnExists = await checkColumnExists(table, 'Class_of_Business');
-                if (columnExists) {
-                    whereClauses.push(`and Class_of_Business = '${ Business.class_of_business || Business.business }'`);
-                }
-            }
-        } else {
-            const columnExists = await checkColumnExists(reportType, 'Class_of_Business');
-            if (columnExists) {
-                whereClauses.push(`and Class_of_Business = '${ Business.class_of_business || Business.business }'`);
-            }
-        }
-    }
-
-    if (riskCode?.original_currency_code || riskCode?.currency) {
-        if (ReportLength.length > 1) {
-            for (const table of ReportLength) {
-                const columnExists = await checkColumnExists(table, 'Original_Currency_Code');
-                if (columnExists) {
-                    whereClauses.push(`and Original_Currency_Code = '${ riskCode.original_currency_code || riskCode.currency }'`);
-                }
-            }
-        } else {
-            const columnExists = await checkColumnExists(reportType, 'Original_Currency_Code');
-            if (columnExists) {
-                whereClauses.push(`and Original_Currency_Code = '${ riskCode.original_currency_code || riskCode.currency }'`);
-            }
-        }
-    }
-
-    // Construct the message
-    const userMessage = `Create a ${ ReportLength.length > 1 ? 'join sql query using unique field from ' + reportType + ' tables' : 'sql query from ' + reportType + ' table' } ${ whereClauses.join(' ') }. Return only the following fields: ${ field }`;
+    const ReportLength = reportType?.split(',')?.length;
+    const userMessage = `Create a ${ReportLength > 1 ? 'join sql query using unique field from'+ reportType +'tables' : 'sql query from'+ reportType +'table'} and Include a WHERE clause with a ${ period?.startDate && `Start_Date greater then equal to ${ period?.startDate }` } ${ period?.endDate && `, end date less then equal to ${ period?.endDate }` } ${ (Business?.class_of_business || Business?.business) && `, Class_of_Business is ${ Business?.class_of_business || Business?.business }` } ${ (riskCode?.original_currency_code || riskCode?.currency) && `, Original_Currency_Code is ${ riskCode?.original_currency_code || riskCode?.currency }` }  and return only this ${ field } Ignore the filter columns are not a valid column. `;
 
     const sqlQuery = await generateSQl(userMessage);
-    const response = await query(sqlQuery);
 
-    return response;
+    try {
+        const response = await query(sqlQuery);
+    
+        return response;
+    } catch(error) {
+        
+        console.log(error.code, error.message)
+    } 
+    
 }
 
 module.exports = { getReportData };
