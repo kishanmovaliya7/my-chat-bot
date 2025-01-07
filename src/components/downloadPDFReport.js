@@ -25,8 +25,6 @@ function getUniqueFilePath(basePath, fileName) {
 
 async function downloadPDFReport(context, selectedValues) {
     const ReportFromTable = await getReportData(selectedValues);
-    console.log('selectedValues',selectedValues,ReportFromTable);
-    
     
     try {  
         if(ReportFromTable?.length) {
