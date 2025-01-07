@@ -26,62 +26,64 @@ function getUniqueFilePath(basePath, fileName) {
 async function downloadPDFReport(context, selectedValues) {
     const ReportFromTable = await getReportData(selectedValues);
     
-
     try {
-        const doc = new jsPDF();
+        
+        if(ReportFromTable.length) {
+            const doc = new jsPDF();
 
-        // Prepare column headers and rows
-        const columnHeaders = ReportFromTable.length > 0 ? Object.keys(ReportFromTable[0]) : [];
-        const tableData = ReportFromTable.map(row =>
-            columnHeaders.map(header => String(row[header] || ''))
-        );
-
-        // Add Title
-        doc.setFontSize(14);
-        doc.text('Report', 10, 10);
-
-        // Add table using autoTable
-        doc.autoTable({
-            styles: {
-                cellPadding: 0.5,
-                fontSize: 3
-            },
-            head: [columnHeaders],
-            body: tableData,
-            startY: 20,
-            theme: 'grid'
-        });
-
-        const publicDir = path.join(__dirname, '..', '..', 'public');
-        if (!fs.existsSync(publicDir)) {
-            fs.mkdirSync(publicDir);
-        }
-        const { filePath, fileName } = getUniqueFilePath(publicDir, 'report.pdf');
-
-        const pdfData = doc.output('arraybuffer');
-        fs.writeFileSync(filePath, Buffer.from(pdfData));
-
-        const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
-        const buttons = [
-            {
-                type: 'openUrl',
-                title: 'Download Report',
-                value: downloadUrl
+            // Prepare column headers and rows
+            const columnHeaders = ReportFromTable.length ? Object.keys(ReportFromTable[0]) : [];
+            const tableData = ReportFromTable.map(row =>
+                columnHeaders.map(header => String(row[header] || ''))
+            );
+    
+            // Add Title
+            doc.setFontSize(14);
+            doc.text('Report', 10, 10);
+    
+            // Add table using autoTable
+            doc.autoTable({
+                styles: {
+                    cellPadding: 0.5,
+                    fontSize: 3
+                },
+                head: [columnHeaders],
+                body: tableData,
+                startY: 20,
+                theme: 'grid'
+            });
+    
+            const publicDir = path.join(__dirname, '..', '..', 'public');
+            if (!fs.existsSync(publicDir)) {
+                fs.mkdirSync(publicDir);
             }
-        ];
-
-        const heroCard = CardFactory.heroCard(
-            '',
-            undefined,
-            buttons,
-            { text: 'Your report is ready! \n\n Click the button below to download your report.' }
-        );
-
-        await context.sendActivity({
-            type: 'message',
-            attachments: [heroCard]
-        });
-        return fileName;
+            const { filePath, fileName } = getUniqueFilePath(publicDir, 'report.pdf');
+    
+            const pdfData = doc.output('arraybuffer');
+            fs.writeFileSync(filePath, Buffer.from(pdfData));
+    
+            const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
+            const buttons = [
+                {
+                    type: 'openUrl',
+                    title: 'Download Report',
+                    value: downloadUrl
+                }
+            ];
+    
+            const heroCard = CardFactory.heroCard(
+                '',
+                undefined,
+                buttons,
+                { text: 'Your report is ready! \n\n Click the button below to download your report.' }
+            );
+    
+            await context.sendActivity({
+                type: 'message',
+                attachments: [heroCard]
+            });
+            return fileName;
+        }
     } catch (error) {
         await context.sendActivity('An error occurred while downloading the report: ' + error.message);
     }

@@ -37,6 +37,8 @@ async function getReportData(selectedValues) {
     const userMessage = `Create a ${ReportLength > 1 ? 'join sql query using unique field from'+ reportType +'tables' : 'sql query from'+ reportType +'table'} and Include a WHERE clause with a ${ period?.startDate && `Start_Date greater then equal to ${ period?.startDate }` } ${ period?.endDate && `, end date less then equal to ${ period?.endDate }` } ${ (Business?.class_of_business || Business?.business) && `, Class_of_Business is ${ Business?.class_of_business || Business?.business }` } ${ (riskCode?.original_currency_code || riskCode?.currency) && `, Original_Currency_Code is ${ riskCode?.original_currency_code || riskCode?.currency }` }  and return only this ${ field } Ignore the filter columns are not a valid column. `;
 
     const sqlQuery = await generateSQl(userMessage);
+    console.log('sqlQuery', sqlQuery);
+    
 
     try {
         const response = await query(sqlQuery);

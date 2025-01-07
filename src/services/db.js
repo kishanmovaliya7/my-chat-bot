@@ -114,7 +114,7 @@ const importDataFromXlsx = async (xlsxFilePath) => {
           return row[col] * 100 + "%";
         }
 
-        if (col.toLowerCase().includes("date")) {
+        if (col.toLowerCase().includes("date") || col.toLowerCase().includes("inception") || col.toLowerCase().includes("expiry")) {
           return formatDate(row[col]);
         }
 
