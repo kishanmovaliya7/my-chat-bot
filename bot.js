@@ -304,13 +304,13 @@ class EchoBot extends ActivityHandler {
                   messages: [
                     {
                       role: 'user',
-                      content: `${userMessage}
-                      Return only:
-                      Valid -> {"startDate": "DD-MM-YYYY", "endDate": "DD-MM-YYYY"}
-                      Invalid -> "no"`
-                    // content:`${userMessage}
-                    //         Return only valid JSON 
-                    //         {"startDate": "DD-MM-YYYY", "endDate": "DD-MM-YYYY"} or "no". No extra text.`
+                      // content: `${userMessage}
+                      // Return only:
+                      // Valid -> {"startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD"}
+                      // Invalid -> "no"`
+                    content:`${userMessage}
+                            Return only valid JSON 
+                            {"startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD"} or "no". No extra text.`
                     },
                   ],
                   model: 'gpt-4',
@@ -547,10 +547,10 @@ class EchoBot extends ActivityHandler {
                 selectedValues.defaultColumn = result;
                 selectedValues.field = result;
                 await generateReport(context);
-                state.currentStep = 9;
+                state.currentStep = 10;
               } else if (ans === 'no') {
                 await selectFields(context, selectedValues.reportType);
-                state.currentStep = 8;
+                state.currentStep = 9;
               } else {
                 await context.sendActivity(
                   'Invalid selection. Please choose "yes" or "no".'
@@ -593,8 +593,8 @@ class EchoBot extends ActivityHandler {
               }
 
               if (ans) {
-                await generateReport(context);
                 selectedValues.field = ans;
+                await generateReport(context);
                 state.currentStep = 10;
               } else {
                 await context.sendActivity('Please select valid option');
@@ -609,8 +609,8 @@ class EchoBot extends ActivityHandler {
           case 10: {
             let ans = null;
             try {
-              if (userMessage?.toLowerCase() === 'pdf' || userMessage?.toLowerCase() === 'excel') {
-                ans = userMessage?.toLowerCase();
+              if (userMessage === 'pdf' || userMessage === 'excel') {
+                ans = userMessage;
               } else {
                 const openaiResponse = await client.chat.completions.create({
                   messages: [

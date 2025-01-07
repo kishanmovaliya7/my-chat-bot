@@ -31,7 +31,10 @@ async function downloadExcelReport(context, selectedValues) {
         sheet.addRow(Object.keys(ReportFromTable[0]));
 
         ReportFromTable.forEach((row) => {
-            sheet.addRow(Object.values(row));
+            const values = Object.values(row).map(value =>
+                value === null || value === undefined ? '' : value
+            );
+            sheet.addRow(values);
         });
 
         const publicDir = path.join(__dirname, '..', '..', 'public');
