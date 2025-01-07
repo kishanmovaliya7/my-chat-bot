@@ -28,7 +28,7 @@ async function downloadPDFReport(context, selectedValues) {
     
     try {
         
-        if(ReportFromTable.length) {
+        if(ReportFromTable?.length) {
             const doc = new jsPDF();
 
             // Prepare column headers and rows
@@ -36,7 +36,6 @@ async function downloadPDFReport(context, selectedValues) {
             const tableData = ReportFromTable.map(row =>
                 columnHeaders.map(header => String(row[header] || ''))
             );
-    
             // Add Title
             doc.setFontSize(14);
             doc.text('Report', 10, 10);
@@ -83,7 +82,7 @@ async function downloadPDFReport(context, selectedValues) {
                 attachments: [heroCard]
             });
             return fileName;
-        }
+        } await context.sendActivity(`No matching records found for your selected filter. Please adjust your filter criteria and try again!`);
     } catch (error) {
         await context.sendActivity('An error occurred while downloading the report: ' + error.message);
     }
