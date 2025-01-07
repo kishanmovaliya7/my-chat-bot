@@ -27,13 +27,8 @@ async function downloadPDFReport(context, selectedValues) {
     const ReportFromTable = await getReportData(selectedValues);
     console.log('selectedValues',selectedValues,ReportFromTable);
     
-<<<<<<< Updated upstream
-    try {
-        
-=======
     
     try {  
->>>>>>> Stashed changes
         if(ReportFromTable?.length) {
             const doc = new jsPDF();
 
@@ -88,13 +83,9 @@ async function downloadPDFReport(context, selectedValues) {
                 attachments: [heroCard]
             });
             return fileName;
-<<<<<<< Updated upstream
-        } await context.sendActivity(`No matching records found for your selected filter. Please adjust your filter criteria and try again!`);
-=======
         } else {
             await context.sendActivity('No matching records found for your selected filter. Please adjust your filter criteria and try again!');
         }
->>>>>>> Stashed changes
     } catch (error) {
         await context.sendActivity('An error occurred while downloading the report: ' + error.message);
     }
