@@ -79,22 +79,40 @@ const getSavedReportController = async (req, res) => {
 
         if (tableExists) {
             const savedReportData = await query('SELECT * FROM SavedReport');
-            res.status(200).json(savedReportData);
+            if (savedReportData) {
+                res.status(200).json({ data: savedReportData, message: 'Report Generated Successfully.' });
+            } else {
+                res.status(200).json({ data: [], message: 'Report Not Found' });
+            }
         } else {
-            res.status(200).json([]);
+            res.status(200).json({
+                message: 'Table Not Exist.'
+            });
         }
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).send(error.message);
     }
 };
 
 const getSingleSavedReportController = async (req, res) => {
     try {
         const Name = req?.params?.filename;
-        const singleData = await query('SELECT * FROM SavedReport WHERE Name = ?', [Name]);
-        res.status(200).json(singleData);
+        const tableExists = await checkTableExists('SavedReport');
+
+        if (tableExists) {
+            const singleData = await query('SELECT * FROM SavedReport WHERE Name = ?', [Name]);
+            if (singleData) {
+                res.status(200).json({ data: singleData, message: 'Report Generated Successfully.' });
+            } else {
+                res.status(200).json({ data: [], message: 'Report Not Found' });
+            }
+        } else {
+            res.status(200).json({
+                message: 'Table Not Exist.'
+            });
+        }
     } catch (error) {
-        res.status(500).json(error.message);
+        res.status(500).send(error.message);
     }
 };
 
@@ -132,9 +150,9 @@ const savedReportController = async (req, res) => {
             await insertValues(tableName, flattenedValues);
         }
 
-        res.status(200).json('Report Saved Successfully');
+        res.status(200).json({ data: flattenedValues, message: 'Report Saved Successfully' });
     } catch (error) {
-        res.status(500).json(error.message);
+        res.status(500).send(error.message);
     }
 };
 
@@ -170,9 +188,9 @@ const editReportController = async (req, res) => {
 
         await updateValues(tableName, flattenedValues, fileName);
 
-        res.status(200).json('Report Updated Successfully');
+        res.status(200).json({ data: flattenedValues, message: 'Report Updated Successfully' });
     } catch (error) {
-        res.status(500).json(error.message);
+        res.status(500).send(error.message);
     }
 };
 

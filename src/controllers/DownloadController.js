@@ -60,12 +60,12 @@ const PDFDownloadController = async (req, res) => {
 
             const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
 
-            res.status(200).json(downloadUrl);
+            res.status(200).json({ data: downloadUrl, message: 'Download URL generated successfully.' });
         } else {
-            res.status(500).json('No matching records found for your selected filter. Please adjust your filter criteria and try again!');
+            res.status(500).json({ message: 'No matching records found for your selected filter. Please adjust your filter criteria and try again!' });
         }
     } catch (error) {
-        res.status(500).json(error.message);
+        res.status(500).send(error.message);
     }
 };
 
@@ -94,12 +94,12 @@ const ExcelDownloadController = async (req, res) => {
 
             const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
 
-            res.status(200).json(downloadUrl);
+            res.status(200).json({ data: downloadUrl, message: 'Download URL generated successfully.' });
         } else {
-            res.status(500).json('No matching records found for your selected filter. Please adjust your filter criteria and try again!');
+            res.status(200).json({ message: 'No matching records found for your selected filter. Please adjust your filter criteria and try again!' });
         }
     } catch (error) {
-        res.status(500).json(error.message);
+        res.status(500).send(error.message);
     }
 };
 
