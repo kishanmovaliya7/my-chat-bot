@@ -18,15 +18,16 @@ async function getAllColumns(reportType) {
     }
 }
 
-async function selectFields(context, reportType) {
+async function selectFields(context, reportType, selectedField) {
     const fields = await getAllColumns(reportType);
-
+    
     const choices = fields.map(item => ({
         title: item.replace('.', ". "),
         value: item
     }));
     // Default selected values
     const defaultSelectedValues = choices.map(choice => choice.value).join(',');
+    const defaultFields = selectedField || defaultSelectedValues;
 
     const card = {
         type: 'AdaptiveCard',
@@ -41,7 +42,7 @@ async function selectFields(context, reportType) {
                 id: 'field',
                 style: 'expanded',
                 isMultiSelect: true,
-                value: defaultSelectedValues,
+                value: defaultFields,
                 label: 'Fields:',
                 isRequired: true,
                 "separator": true,

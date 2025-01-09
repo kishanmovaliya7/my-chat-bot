@@ -1,11 +1,13 @@
 const path = require('path');
+const express = require('express');
 
 const dotenv = require('dotenv');
 const ENV_FILE = path.join(__dirname, '.env');
 const fs = require('fs');
 dotenv.config({ path: ENV_FILE });
 
-const restify = require('restify');
+// const restify = require('restify');
+const app = express();
 
 const {
     CloudAdapter,
@@ -14,11 +16,15 @@ const {
 } = require('botbuilder');
 
 const { EchoBot } = require('./bot');
-const { importDataFromXlsx, query, addEntryToSaveReport, runAllCronJobs, dropTable } = require('./src/services/db');
+const { importDataFromXlsx, runAllCronJobs } = require('./src/services/db');
+const { router } = require('./src/routes');
 
 // Create HTTP server
-const server = restify.createServer();
-server.use(restify.plugins.bodyParser());
+// const server = restify.createServer();
+// server.use(restify.plugins.bodyParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/api', router);
 
 // import excel file data in sqlite database
 const xlsxFilePath = path.join(__dirname, 'RawData.xlsx');
@@ -28,18 +34,9 @@ importDataFromXlsx(xlsxFilePath, tableName)
     .then(() => console.log('Import finished successfully.'))
     .catch(err => console.log('Error importing data:', err));
 
-   
 // addEntryToSaveReport();
 runAllCronJobs();
 // dropTable()
-
-server.listen(process.env.port || process.env.PORT || 3978, async() => {
-    // const aa = await query('select * from savedReports;');
-    // console.log(aa)
-    console.log(`\n${ server.name } listening to ${ server.url }`);
-    console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
-    console.log('\nTo talk to your bot, open the emulator select "Open Bot"');
-});
 
 const credentialsFactory = new ConfigurationServiceClientCredentialFactory({
     MicrosoftAppId: process.env.MicrosoftAppId,
@@ -72,11 +69,11 @@ adapter.onTurnError = onTurnErrorHandler;
 // Create the main dialog.
 const myBot = new EchoBot();
 
-server.post('/api/messages', async (req, res) => {
+app.post('/api/messages', async (req, res) => {
     await adapter.process(req, res, (context) => myBot.run(context));
 });
 
-server.get('/public/:filename', (req, res, next) => {
+app.get('/public/:filename', (req, res, next) => {
     const fileName = req.params.filename;
     const filePath = path.join(__dirname, 'public', fileName);
 
@@ -89,7 +86,7 @@ server.get('/public/:filename', (req, res, next) => {
     // Set headers for file download
     res.writeHead(200, {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=${fileName}`
+        'Content-Disposition': `attachment; filename=${ fileName }`
     });
 
     // Stream the file
@@ -108,10 +105,17 @@ server.get('/public/:filename', (req, res, next) => {
     });
 });
 
-server.on('upgrade', async (req, socket, head) => {
+app.on('upgrade', async (req, socket, head) => {
     const streamingAdapter = new CloudAdapter(botFrameworkAuthentication);
 
     streamingAdapter.onTurnError = onTurnErrorHandler;
 
     await streamingAdapter.process(req, socket, head, (context) => myBot.run(context));
+});
+app.listen(process.env.port || process.env.PORT || 3978, async () => {
+    // const aa = await query('select * from savedReports;');
+    // console.log(aa)
+    console.log(`\n${ app.name } listening to ${ app.url }`);
+    console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
+    console.log('\nTo talk to your bot, open the emulator select "Open Bot"');
 });

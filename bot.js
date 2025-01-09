@@ -967,7 +967,7 @@ class EchoBot extends ActivityHandler {
                   await specificClassesCard(context, 'currency', filteredValue);
                 }
                 if (filteredValue.Field) {
-                  await selectFields(context, reportData.reportName);
+                  await selectFields(context, reportData.reportName, filteredValue.Field);
                 }
               }
             } catch (error) {
