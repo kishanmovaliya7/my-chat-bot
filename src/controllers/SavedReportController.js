@@ -1,4 +1,5 @@
 const { query } = require('../services/db');
+const { AllColumns } = require('./TableDataController');
 
 const checkTableExists = async (tableName) => {
     const sql = `PRAGMA table_info(${ tableName })`;
@@ -43,6 +44,20 @@ const insertValues = async (tableName, values) => {
     }
 };
 
+const updateValues = async (tableName, values, filename) => {
+    const columns = Object.keys(values).map(col => `\`${ col }\` = ?`).join(', ');
+
+    const sql = `UPDATE ${ tableName } SET ${ columns } WHERE Name = ?`;
+
+    const queryParams = [...Object.values(values), filename];
+
+    try {
+        return await query(sql, queryParams);
+    } catch (err) {
+        return null;
+    }
+};
+
 const createTable = async (tableName, columns) => {
     const columnsDefinition = Object.entries(columns)
         .map(([colName, colValue]) => `\`${ colName }\` ${ inferColumnType(colValue) }`)
@@ -60,10 +75,16 @@ const createTable = async (tableName, columns) => {
 
 const getSavedReportController = async (req, res) => {
     try {
-        const savedReportData = await query('SELECT * FROM SavedReport');
-        res.status(200).json(savedReportData);
+        const tableExists = await checkTableExists('SavedReport');
+
+        if (tableExists) {
+            const savedReportData = await query('SELECT * FROM SavedReport');
+            res.status(200).json(savedReportData);
+        } else {
+            res.status(200).json([]);
+        }
     } catch (error) {
-        res.status(500).json(error.message);
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -79,7 +100,8 @@ const getSingleSavedReportController = async (req, res) => {
 
 const savedReportController = async (req, res) => {
     try {
-        const { fileName, reportType, period, Currency, Business, field, type, defaultColumn } = req.body;
+        const { fileName, reportType, period, Currency, Business, field, type, scheduler, emailLists } = req.body;
+        const defaultColumn = await AllColumns(reportType?.split(','));
         const tableName = 'SavedReport';
 
         const flattenedValues = {
@@ -93,12 +115,12 @@ const savedReportController = async (req, res) => {
                 OriginalCurrencyCode: Currency || null,
                 Field: field
             },
-            scheduler: '',
+            scheduler: scheduler,
             isDeleted: false,
-            emailLists: '',
+            emailLists: emailLists,
             isConfirm: false,
             downloadType: type,
-            defaultColumns: defaultColumn,
+            defaultColumns: JSON.stringify(defaultColumn),
             created_at: new Date()
         };
 
@@ -116,42 +138,42 @@ const savedReportController = async (req, res) => {
     }
 };
 
-// const editReportController = async (req, res) => {
-//     try {
-//         const { fileName, reportType, period, Currency, Business, field, type, defaultColumn } = req.body;
-//         const tableName = 'SavedReport';
+const editReportController = async (req, res) => {
+    try {
+        const { fileName, reportType, period, Currency, Business, field, type } = req.body;
+        const defaultColumn = await AllColumns(reportType?.split(','));
+        const tableName = 'SavedReport';
 
-//         // Flatten the values to match the columns in the database
-//         const flattenedValues = {
-//             reportName: reportType,
-//             email: 'test@gmail.com',
-//             reportFilter: {
-//                 StartDate: period ? period?.startDate : null,
-//                 EndDate: period ? period?.endDate : null,
-//                 ClassOfBusiness: Business || null,
-//                 OriginalCurrencyCode: Currency || null,
-//                 Field: field
-//             },
-//             scheduler: '',
-//             isDeleted: false,
-//             emailLists: '',
-//             isConfirm: false,
-//             downloadType: type,
-//             defaultColumns: defaultColumn,
-//             created_at: new Date()
-//         };
+        // Flatten the values to match the columns in the database
+        const flattenedValues = {
+            reportName: reportType,
+            email: 'test@gmail.com',
+            reportFilter: {
+                StartDate: period ? period?.startDate : null,
+                EndDate: period ? period?.endDate : null,
+                ClassOfBusiness: Business || null,
+                OriginalCurrencyCode: Currency || null,
+                Field: field
+            },
+            // scheduler: '',
+            // isDeleted: false,
+            // emailLists: '',
+            // isConfirm: false,
+            downloadType: type,
+            defaultColumns: JSON.stringify(defaultColumn)
+        };
 
-//         // Serialize the reportFilter object to store it as a JSON string
-//         if (flattenedValues.reportFilter) {
-//             flattenedValues.reportFilter = JSON.stringify(flattenedValues.reportFilter);
-//         }
+        // Serialize the reportFilter object to store it as a JSON string
+        if (flattenedValues.reportFilter) {
+            flattenedValues.reportFilter = JSON.stringify(flattenedValues.reportFilter);
+        }
 
-//         await updateValues(tableName, flattenedValues, fileName);
+        await updateValues(tableName, flattenedValues, fileName);
 
-//         res.status(200).json('Report Updated Successfully');
-//     } catch (error) {
-//         res.status(500).json(error.message);
-//     }
-// };
+        res.status(200).json('Report Updated Successfully');
+    } catch (error) {
+        res.status(500).json(error.message);
+    }
+};
 
-module.exports = { getSavedReportController, getSingleSavedReportController, savedReportController };
+module.exports = { getSavedReportController, getSingleSavedReportController, savedReportController, editReportController };
