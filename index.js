@@ -1,5 +1,6 @@
 const path = require('path');
 const express = require('express');
+const cors = require('cors');
 
 const dotenv = require('dotenv');
 const ENV_FILE = path.join(__dirname, '.env');
@@ -23,6 +24,7 @@ const { router } = require('./src/routes');
 // const server = restify.createServer();
 // server.use(restify.plugins.bodyParser());
 app.use(express.json());
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', router);
 

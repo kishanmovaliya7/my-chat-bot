@@ -86,6 +86,7 @@ const getSavedReportController = async (req, res) => {
             }
         } else {
             res.status(200).json({
+                data: [],
                 message: 'Table Not Exist.'
             });
         }
@@ -102,7 +103,7 @@ const getSingleSavedReportController = async (req, res) => {
         if (tableExists) {
             const singleData = await query('SELECT * FROM SavedReport WHERE Name = ?', [Name]);
             if (singleData) {
-                res.status(200).json({ data: singleData, message: 'Report Generated Successfully.' });
+                res.status(200).json({ data: singleData });
             } else {
                 res.status(200).json({ data: [], message: 'Report Not Found' });
             }
@@ -158,7 +159,7 @@ const savedReportController = async (req, res) => {
 
 const editReportController = async (req, res) => {
     try {
-        const { fileName, reportType, period, Currency, Business, field, type } = req.body;
+        const { fileName, reportType, period, Currency, Business, field, type, scheduler, emailLists } = req.body;
         const defaultColumn = await AllColumns(reportType?.split(','));
         const tableName = 'SavedReport';
 
@@ -173,10 +174,10 @@ const editReportController = async (req, res) => {
                 OriginalCurrencyCode: Currency || null,
                 Field: field
             },
-            // scheduler: '',
-            // isDeleted: false,
-            // emailLists: '',
-            // isConfirm: false,
+            scheduler: scheduler,
+            isDeleted: false,
+            emailLists: emailLists,
+            isConfirm: false,
             downloadType: type,
             defaultColumns: JSON.stringify(defaultColumn)
         };
