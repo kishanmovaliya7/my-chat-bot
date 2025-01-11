@@ -78,7 +78,7 @@ const getSavedReportController = async (req, res) => {
         const tableExists = await checkTableExists('SavedReport');
 
         if (tableExists) {
-            const savedReportData = await query('SELECT * FROM SavedReport');
+            const savedReportData = await query('SELECT * FROM SavedReport WHERE isDeleted = 0');
             if (savedReportData) {
                 res.status(200).json({ data: savedReportData, message: 'Report Generated Successfully.' });
             } else {
@@ -90,6 +90,23 @@ const getSavedReportController = async (req, res) => {
                 message: 'Table Not Exist.'
             });
         }
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
+const deleteSavedReportController = async (req, res) => {
+    try {
+        const fileName = req?.params?.filename;
+        const tableName = 'SavedReport';
+
+        // Flatten the values to match the columns in the database
+        const flattenedValues = {
+            isDeleted: true
+        };
+        await updateValues(tableName, flattenedValues, fileName);
+
+        res.status(200).json({ message: 'Report Deleted Successfully' });
     } catch (error) {
         res.status(500).send(error.message);
     }
@@ -124,7 +141,7 @@ const savedReportController = async (req, res) => {
         const tableName = 'SavedReport';
 
         const flattenedValues = {
-            Name: `${ fileName }-${ Date.now() }`,
+            Name: fileName,
             reportName: reportType,
             email: 'test@gmail.com',
             reportFilter: {
@@ -195,4 +212,4 @@ const editReportController = async (req, res) => {
     }
 };
 
-module.exports = { getSavedReportController, getSingleSavedReportController, savedReportController, editReportController };
+module.exports = { getSavedReportController, getSingleSavedReportController, savedReportController, editReportController, deleteSavedReportController };
