@@ -21,7 +21,7 @@ function getUniqueFilePath(basePath, fileName) {
 
 const PDFDownloadController = async (req, res) => {
     try {
-        const ReportFromTable = await getReportData(req.body);
+        const { ReportFromTable, sqlQuery } = await getReportData(req.body);
         if (ReportFromTable?.length) {
             const doc = new jsPDF();
 
@@ -57,7 +57,7 @@ const PDFDownloadController = async (req, res) => {
 
             const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
 
-            res.status(200).json({ data: downloadUrl, message: 'Download URL generated successfully.' });
+            res.status(200).json({ data: downloadUrl, sqlQuery: sqlQuery, message: 'Download URL generated successfully.' });
         } else {
             res.status(200).json({ message: 'No matching records found for your selected filter. Please adjust your filter criteria and try again!' });
         }
@@ -68,7 +68,7 @@ const PDFDownloadController = async (req, res) => {
 
 const ExcelDownloadController = async (req, res) => {
     try {
-        const ReportFromTable = await getReportData(req.body);
+        const { ReportFromTable, sqlQuery } = await getReportData(req.body);
 
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('Report');
@@ -91,7 +91,7 @@ const ExcelDownloadController = async (req, res) => {
 
             const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
 
-            res.status(200).json({ data: downloadUrl, message: 'Download URL generated successfully.' });
+            res.status(200).json({ data: downloadUrl, sqlQuery: sqlQuery, message: 'Download URL generated successfully.' });
         } else {
             res.status(200).json({ message: 'No matching records found for your selected filter. Please adjust your filter criteria and try again!' });
         }

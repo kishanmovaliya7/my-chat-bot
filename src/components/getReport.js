@@ -45,7 +45,7 @@ async function getReportData(selectedValues) {
 
     try {
         const response = await query(sqlQuery);
-        return response;
+        return { ReportFromTable: response, sqlQuery };
     } catch (error) {
         console.log(error.code, error.message);
     }
