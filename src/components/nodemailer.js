@@ -9,7 +9,8 @@ async function sendAnEmail(
   email,
   bufferData,
   fileName,
-  downloadType
+  downloadType,
+  loggedInEmail
 ) {
   const userMessage = `Hello, Please find the attached report for ${reportName}.\n\nBest regards,\nYour Team`;
 
@@ -25,13 +26,13 @@ async function sendAnEmail(
       rejectUnauthorized: false,
     },
   });
-  const recipientEmails = email ? email?.join(",") : email[0];
-  console.log("recipientEmails", recipientEmails, email);
+
+  const recipientEmails = email ? JSON.parse(email) : null;
 
   // Send an email
   const mailOptions = {
     from: "kishan@arisoft-technologies.com",
-    to: recipientEmails,
+    to: loggedInEmail + recipientEmails ? `, ${recipientEmails}` : '',
     subject: `${reportName} Report`,
     text: userMessage,
     attachments: [
@@ -89,6 +90,7 @@ async function mailerFunction(iterator) {
     emailLists,
     downloadType,
     defaultColumns,
+    email
   } = iterator;
   const report = JSON.parse(reportFilter);
 
@@ -143,7 +145,7 @@ async function mailerFunction(iterator) {
   }
   console.log("bufferData", bufferData);
 
-  await sendAnEmail(reportName, emailLists, bufferData, fileName, downloadType);
+  await sendAnEmail(reportName, emailLists, bufferData, fileName, downloadType, email);
 }
 
 module.exports = mailerFunction;

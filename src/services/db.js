@@ -201,15 +201,14 @@ const addEntryToSaveReport = async () => {
 };
 
 const runAllCronJobs = async () => {
-  const sql = `SELECT * FROM SavedReport WHERE isDeleted = 0 AND isConfirm = 0`;
+  const sql = `SELECT * FROM SavedReport WHERE isDeleted = 0 AND isConfirm = 1`;
   try {
     const data = await query(sql);
 
     for (const iterator of data) {
-      console.log("iterator.scheduler", iterator.scheduler);
-
+      await mailerFunction(iterator);
       cron.schedule(
-        `*/1 * * * *`,
+        iterator.scheduler,
         async () => {
           console.log(iterator.Name, "Called at", new Date());
           await mailerFunction(iterator);
@@ -225,15 +224,13 @@ const runAllCronJobs = async () => {
 };
 
 const runCronJobByFileName = async (field) => {
-  const sql = `SELECT * FROM SavedReport WHERE Name = '${field}'`;
+  const sql = `SELECT * FROM SavedReport WHERE Name = '${field}' AND isDeleted = 0 AND isConfirm = 1`;
   try {
     const data = await query(sql);
-    console.log("data", data, JSON.stringify(data));
     if(data.length) {
       cron.schedule(
         data[0].scheduler,
         async () => {
-          console.log(data[0].Name, "Called at*", new Date());
           await mailerFunction(data[0]);
         },
         { name: `Schedule-${data[0].Name}`, timezone: "America/New_York" }

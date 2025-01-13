@@ -134,6 +134,27 @@ const getSingleSavedReportController = async (req, res) => {
     }
 };
 
+const saveConfirmtionSavedReportController = async (req, res) => {
+    try {
+        const Name = req?.params?.filename;
+        const tableExists = await checkTableExists('SavedReport');
+
+        if (tableExists) {
+            const flattenedValues = {
+                isConfirm: true
+            };
+            await updateValues('SavedReport', flattenedValues, Name);
+            res.status(200).json({ message: 'Set email confirmation' });
+        } else {
+            res.status(200).json({
+                message: 'Table Not Exist.'
+            });
+        }
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
 const savedReportController = async (req, res) => {
     try {
         const { fileName, reportType, period, Currency, Business, field, type, scheduler, emailLists,downloadFile } = req.body;
@@ -215,4 +236,4 @@ const editReportController = async (req, res) => {
     }
 };
 
-module.exports = { getSavedReportController, getSingleSavedReportController, savedReportController, editReportController, deleteSavedReportController };
+module.exports = { saveConfirmtionSavedReportController, getSavedReportController, getSingleSavedReportController, savedReportController, editReportController, deleteSavedReportController };
