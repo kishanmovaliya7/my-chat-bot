@@ -76,7 +76,7 @@ const ExcelDownloadController = async (req, res) => {
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('Report');
 
-        if (ReportFromTable.length) {
+        if (ReportFromTable?.length) {
             sheet.addRow(Object.keys(ReportFromTable[0]));
 
             ReportFromTable.forEach((row) => {
