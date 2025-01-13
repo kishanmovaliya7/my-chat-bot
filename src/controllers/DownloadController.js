@@ -62,7 +62,7 @@ const PDFDownloadController = async (req, res) => {
 
             res.status(200).json({ data: downloadUrl, message: 'Download URL generated successfully.' });
         } else {
-            res.status(500).json({ message: 'No matching records found for your selected filter. Please adjust your filter criteria and try again!' });
+            res.status(200).json({ message: 'No matching records found for your selected filter. Please adjust your filter criteria and try again!' });
         }
     } catch (error) {
         res.status(500).send(error.message);

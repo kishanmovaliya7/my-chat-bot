@@ -143,7 +143,7 @@ const getQuestionsController = async (req, res) => {
       } else {
         res
           .status(200)
-          .json("Thank you for using Fusion Assistant 😊. Have a nice day!");
+          .json("Thank you for using Fusion Assistant 😊.\n\n Have a nice day!");
       }
     }
   } catch (error) {

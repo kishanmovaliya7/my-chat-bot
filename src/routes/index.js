@@ -22,7 +22,7 @@ router.post('/pdf', PDFDownloadController);
 router.post('/excel', ExcelDownloadController);
 
 router.post('/save-report', savedReportController);
-router.post('/edit-report', editReportController);
+router.post('/edit-report/:filename', editReportController);
 router.delete('/delete-report/:filename', deleteSavedReportController);
 
 module.exports = { router };

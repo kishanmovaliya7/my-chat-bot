@@ -176,7 +176,8 @@ const savedReportController = async (req, res) => {
 
 const editReportController = async (req, res) => {
     try {
-        const { fileName, reportType, period, Currency, Business, field, type, scheduler, emailLists } = req.body;
+        const FileName = req?.params?.filename;
+        const { reportType, period, Currency, Business, field, type, scheduler, emailLists } = req.body;
         const defaultColumn = await AllColumns(reportType?.split(','));
         const tableName = 'SavedReport';
 
@@ -204,7 +205,7 @@ const editReportController = async (req, res) => {
             flattenedValues.reportFilter = JSON.stringify(flattenedValues.reportFilter);
         }
 
-        await updateValues(tableName, flattenedValues, fileName);
+        await updateValues(tableName, flattenedValues, FileName);
 
         res.status(200).json({ data: flattenedValues, message: 'Report Updated Successfully' });
     } catch (error) {
