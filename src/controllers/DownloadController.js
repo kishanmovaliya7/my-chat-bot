@@ -8,19 +8,16 @@ const { getReportData } = require('../components/getReport');
 function getUniqueFilePath(basePath, fileName) {
     const ext = path.extname(fileName);
     const name = path.basename(fileName, ext);
-    let uniquePath = path.join(basePath, fileName);
-    let counter = 1;
-
-    while (fs.existsSync(uniquePath)) {
-        uniquePath = path.join(basePath, `${ name }(${ counter })${ ext }`);
-        counter++;
-    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // Replace colons and dots with dashes
+    const uniqueName = `${ name }_${ timestamp }${ ext }`;
+    const uniquePath = path.join(basePath, uniqueName);
 
     return {
         filePath: uniquePath,
         fileName: path.basename(uniquePath)
     };
 }
+
 
 const PDFDownloadController = async (req, res) => {
     try {
@@ -29,8 +26,8 @@ const PDFDownloadController = async (req, res) => {
             const doc = new jsPDF();
 
             // Prepare column headers and rows
-            const columnHeaders = ReportFromTable.length ? Object.keys(ReportFromTable[0]) : [];
-            const tableData = ReportFromTable.map(row =>
+            const columnHeaders = ReportFromTable?.length ? Object.keys(ReportFromTable[0]) : [];
+            const tableData = ReportFromTable?.map(row =>
                 columnHeaders.map(header => String(row[header] || ''))
             );
             // Add Title
@@ -79,7 +76,7 @@ const ExcelDownloadController = async (req, res) => {
         if (ReportFromTable?.length) {
             sheet.addRow(Object.keys(ReportFromTable[0]));
 
-            ReportFromTable.forEach((row) => {
+            ReportFromTable?.forEach((row) => {
                 sheet.addRow(Object.values(row));
             });
 

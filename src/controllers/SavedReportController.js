@@ -136,7 +136,7 @@ const getSingleSavedReportController = async (req, res) => {
 
 const savedReportController = async (req, res) => {
     try {
-        const { fileName, reportType, period, Currency, Business, field, type, scheduler, emailLists } = req.body;
+        const { fileName, reportType, period, Currency, Business, field, type, scheduler, emailLists,downloadFile } = req.body;
         const defaultColumn = await AllColumns(reportType?.split(','));
         const tableName = 'SavedReport';
 
@@ -153,9 +153,10 @@ const savedReportController = async (req, res) => {
             },
             scheduler: scheduler,
             isDeleted: false,
-            emailLists: emailLists,
+            emailLists: JSON.stringify(emailLists) || null,
             isConfirm: false,
             downloadType: type,
+            downloadFile: downloadFile,
             defaultColumns: JSON.stringify(defaultColumn),
             created_at: new Date()
         };
@@ -177,7 +178,7 @@ const savedReportController = async (req, res) => {
 const editReportController = async (req, res) => {
     try {
         const FileName = req?.params?.filename;
-        const { reportType, period, Currency, Business, field, type, scheduler, emailLists } = req.body;
+        const { reportType, period, Currency, Business, field, type, scheduler, emailLists, downloadFile } = req.body;
         const defaultColumn = await AllColumns(reportType?.split(','));
         const tableName = 'SavedReport';
 
@@ -194,9 +195,10 @@ const editReportController = async (req, res) => {
             },
             scheduler: scheduler,
             isDeleted: false,
-            emailLists: emailLists,
+            emailLists: JSON.stringify(emailLists) || null,
             isConfirm: false,
             downloadType: type,
+            downloadFile: downloadFile,
             defaultColumns: JSON.stringify(defaultColumn)
         };
 

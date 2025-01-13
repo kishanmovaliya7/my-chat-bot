@@ -17,14 +17,14 @@ const {
 } = require('botbuilder');
 
 const { EchoBot } = require('./bot');
-const { importDataFromXlsx, runAllCronJobs } = require('./src/services/db');
+const { importDataFromXlsx, runAllCronJobs, addEntryToSaveReport } = require('./src/services/db');
 const { router } = require('./src/routes');
 
 // Create HTTP server
 // const server = restify.createServer();
 // server.use(restify.plugins.bodyParser());
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', router);
 

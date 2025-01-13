@@ -1,7 +1,7 @@
 const { jsPDF } = require("jspdf");
 require("jspdf-autotable");
 
-async function getPDFReportForEmail(selectedValues, defaultHeader) {
+async function getPDFReportForEmail(selectedValues) {
   try {
     const doc = new jsPDF();
     
@@ -15,7 +15,7 @@ async function getPDFReportForEmail(selectedValues, defaultHeader) {
           cellPadding: 0.5,
           fontSize: 3,
         },
-        head: [defaultHeader],
+        head: [""],
         body: [],
         startY: 20,
         theme: "grid",

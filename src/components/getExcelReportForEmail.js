@@ -1,15 +1,15 @@
 const ExcelJS = require("exceljs");
 
-async function getExcelReportForEmail(selectedValues, defaultHeader) {
+async function getExcelReportForEmail(selectedValues) {
   try {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Report");
 
     // Check if selectedValues is empty
-    if (!selectedValues || selectedValues.length === 0) {
-      // sheet.addRow(["No data available"]);
-      sheet.addRow(defaultHeader);
-    } else {
+    // if (!selectedValues || selectedValues.length === 0) {
+    //   // sheet.addRow(["No data available"]);
+    //   sheet.addRow(defaultHeader);
+    // } else {
       // column header
       const columnHeaders = Object.keys(selectedValues[0]);
       sheet.addRow(columnHeaders);
@@ -22,7 +22,7 @@ async function getExcelReportForEmail(selectedValues, defaultHeader) {
         });
         sheet.addRow(rowData);
       });
-    }
+    // }
 
     // Generate the file and return its buffer
     const buffer = await workbook.xlsx.writeBuffer();

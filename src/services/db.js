@@ -201,7 +201,7 @@ const addEntryToSaveReport = async () => {
 };
 
 const runAllCronJobs = async () => {
-  const sql = `SELECT * FROM SavedReport WHERE isDeleted = 0 AND isConfirm = 1`;
+  const sql = `SELECT * FROM SavedReport WHERE isDeleted = 0 AND isConfirm = 0`;
   try {
     const data = await query(sql);
 
@@ -209,7 +209,7 @@ const runAllCronJobs = async () => {
       console.log("iterator.scheduler", iterator.scheduler);
 
       cron.schedule(
-        `${iterator.scheduler}`,
+        `*/1 * * * *`,
         async () => {
           console.log(iterator.Name, "Called at", new Date());
           await mailerFunction(iterator);

@@ -111,7 +111,7 @@ async function getSingleSavedReport(selectedSavedReport) {
 }
 
 async function editReport(context, filename, selectedValues) {
-    const { reportType, period, riskCode, Business, field } = selectedValues;
+    const { reportType, period, riskCode, Business, field, emailLists } = selectedValues;
     const tableName = 'SavedReport';
 
     // Flatten the values to match the columns in the database
@@ -128,7 +128,7 @@ async function editReport(context, filename, selectedValues) {
         scheduler: '',
         isDeleted: false,
         isConfirm: false,
-        emailLists: "",
+        emailLists: emailLists || null,
         created_at: new Date()
     };
 
@@ -145,7 +145,7 @@ async function editReport(context, filename, selectedValues) {
 }
 
 async function saveReport(context, filename, selectedValues) {
-    const { reportType, period, riskCode, Business, field, type, defaultColumn } = selectedValues;
+    const { reportType, period, riskCode, Business, Currency, field, type, defaultColumn } = selectedValues;
 
     const tableName = 'SavedReport';
 
@@ -157,12 +157,12 @@ async function saveReport(context, filename, selectedValues) {
             StartDate: period ? period?.startDate : null,
             EndDate: period ? period?.endDate : null,
             ClassOfBusiness: Business ? Business?.class_of_business || Business?.business : null,
-            OriginalCurrencyCode: riskCode ? riskCode?.original_currency_code || riskCode.currency : null,
+            OriginalCurrencyCode: riskCode ? riskCode?.original_currency_code || Currency : null,
             Field: field
         },
         scheduler: '',
         isDeleted: false,
-        emailLists: "",
+        emailLists: null,
         isConfirm: false,
         downloadType: type,
         defaultColumns: defaultColumn,

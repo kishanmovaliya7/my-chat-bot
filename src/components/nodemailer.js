@@ -25,11 +25,13 @@ async function sendAnEmail(
       rejectUnauthorized: false,
     },
   });
+  const recipientEmails = email ? email?.join(",") : email[0];
+  console.log("recipientEmails", recipientEmails, email);
 
   // Send an email
   const mailOptions = {
     from: "kishan@arisoft-technologies.com",
-    to: email,
+    to: recipientEmails,
     subject: `${reportName} Report`,
     text: userMessage,
     attachments: [
@@ -48,7 +50,7 @@ async function sendAnEmail(
     const info = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully: ", {
       res: info.response,
-      email: email,
+      email: recipientEmails,
     });
 
     return { success: true, data: info.response };
@@ -80,7 +82,14 @@ const query = (sql, params = []) => {
 };
 
 async function mailerFunction(iterator) {
-  const { Name, reportName, reportFilter, emailLists, downloadType, defaultColumns } = iterator;
+  const {
+    Name,
+    reportName,
+    reportFilter,
+    emailLists,
+    downloadType,
+    defaultColumns,
+  } = iterator;
   const report = JSON.parse(reportFilter);
 
   // const userMessage = `Create a join sql query using unique field from ${reportName} tables and return only this ${abc} `;
@@ -102,9 +111,9 @@ async function mailerFunction(iterator) {
       ? `and end date is less than or equal to ${report?.EndDate}`
       : ""
   } ${
-    report?.ClassOfBusiness || report?.business
+    report?.ClassOfBusiness.business || report?.business
       ? `and Class of Business is ${
-          report?.ClassOfBusiness || report?.business
+          report?.ClassOfBusiness.business || report?.business
         }`
       : ""
   } ${
@@ -118,12 +127,10 @@ async function mailerFunction(iterator) {
   const sqlQuery = await generateSQl(userMessage);
   console.log("sqlQuery**:-", sqlQuery);
   const policyData = await query(sqlQuery);
-  
 
   let bufferData;
   let fileName;
 
-  
   let input = defaultColumns;
   let defaultHeader = input.replace(/policy\./g, "");
 
@@ -134,6 +141,7 @@ async function mailerFunction(iterator) {
     bufferData = await getPDFReportForEmail(policyData, defaultHeader);
     fileName = `${Name}.pdf`;
   }
+  console.log("bufferData", bufferData);
 
   await sendAnEmail(reportName, emailLists, bufferData, fileName, downloadType);
 }
