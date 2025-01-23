@@ -135,7 +135,7 @@ const dropTable = async () => {
   try {
     console.log("CALL DROP");
 
-    const dropTableQuery = `DROP TABLE IF EXISTS SavedReport`;
+    const dropTableQuery = `DROP TABLE IF EXISTS savedReports`;
     await query(dropTableQuery);
     console.log("DELEted");
   } catch (error) {
@@ -193,7 +193,7 @@ const addEntryToSaveReport = async () => {
   };
 
   try {
-    await addEntry("SavedReport", newEntry);
+    await addEntry("savedReports", newEntry);
     // console.log('Report entry added successfully.');
   } catch (err) {
     console.error("Error adding report entry:", err);
@@ -201,7 +201,7 @@ const addEntryToSaveReport = async () => {
 };
 
 const runAllCronJobs = async () => {
-  const sql = `SELECT * FROM SavedReport WHERE isDeleted = 0 AND isConfirm = 1`;
+  const sql = `SELECT * FROM savedReports WHERE isDeleted = 0 AND isConfirm = 1`;
   try {
     const data = await query(sql);
 
@@ -224,7 +224,7 @@ const runAllCronJobs = async () => {
 };
 
 const runCronJobByFileName = async (field) => {
-  const sql = `SELECT * FROM SavedReport WHERE Name = '${field}' AND isDeleted = 0 AND isConfirm = 1`;
+  const sql = `SELECT * FROM savedReports WHERE Name = '${field}' AND isDeleted = 0 AND isConfirm = 1`;
   try {
     const data = await query(sql);
     if(data.length) {

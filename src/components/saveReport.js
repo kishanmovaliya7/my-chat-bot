@@ -79,13 +79,13 @@ const updateValues = async (tableName, values, filename) => {
 
 async function getSavedReport() {
     try {
-        const tableInfo = await query('PRAGMA table_info(SavedReport)');
+        const tableInfo = await query('PRAGMA table_info(savedReports)');
 
         if (tableInfo.length === 0) {
             return null;
         }
 
-        const savedReportData = await query('SELECT * FROM SavedReport');
+        const savedReportData = await query('SELECT * FROM savedReports');
 
         // Deserialize reportFilter column if it exists
         savedReportData.forEach(row => {
@@ -103,7 +103,7 @@ async function getSavedReport() {
 
 async function getSingleSavedReport(selectedSavedReport) {
     try {
-        const singleData = await query('SELECT * FROM SavedReport WHERE Name = ?', [selectedSavedReport]);
+        const singleData = await query('SELECT * FROM savedReports WHERE Name = ?', [selectedSavedReport]);
         return singleData;
     } catch (error) {
         return null;
@@ -112,7 +112,7 @@ async function getSingleSavedReport(selectedSavedReport) {
 
 async function editReport(context, filename, selectedValues) {
     const { reportType, period, riskCode, Business, field, emailLists } = selectedValues;
-    const tableName = 'SavedReport';
+    const tableName = 'savedReports';
 
     // Flatten the values to match the columns in the database
     const flattenedValues = {
@@ -147,7 +147,7 @@ async function editReport(context, filename, selectedValues) {
 async function saveReport(context, filename, selectedValues) {
     const { reportType, period, riskCode, Business, Currency, field, type, defaultColumn } = selectedValues;
 
-    const tableName = 'SavedReport';
+    const tableName = 'savedReports';
 
     const flattenedValues = {
         Name: filename,
@@ -179,7 +179,7 @@ async function saveReport(context, filename, selectedValues) {
 }
 
 const updateReport = async (filename, field) => {
-    const response = await query(`update SavedReport set ${field} where Name = "${filename}"`)
+    const response = await query(`update savedReports set ${field} where Name = "${filename}"`)
     return response 
 }
 module.exports = { saveReport, getSavedReport, getSingleSavedReport, editReport, updateReport };

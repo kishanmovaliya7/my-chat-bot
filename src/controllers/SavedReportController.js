@@ -76,10 +76,10 @@ const createTable = async (tableName, columns) => {
 
 const getSavedReportController = async (req, res) => {
     try {
-        const tableExists = await checkTableExists('SavedReport');
+        const tableExists = await checkTableExists('savedReports');
 
         if (tableExists) {
-            const savedReportData = await query('SELECT * FROM SavedReport WHERE isDeleted = 0');
+            const savedReportData = await query('SELECT * FROM savedReports WHERE isDeleted = 0 ORDER BY createdAt DESC');
             if (savedReportData) {
                 res.status(200).json({ data: savedReportData, message: 'Report Generated Successfully.' });
             } else {
@@ -99,7 +99,7 @@ const getSavedReportController = async (req, res) => {
 const deleteSavedReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
-        const tableName = 'SavedReport';
+        const tableName = 'savedReports';
 
         // Flatten the values to match the columns in the database
         const flattenedValues = {
@@ -116,10 +116,10 @@ const deleteSavedReportController = async (req, res) => {
 const getSingleSavedReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
-        const tableExists = await checkTableExists('SavedReport');
+        const tableExists = await checkTableExists('savedReports');
 
         if (tableExists) {
-            const singleData = await query('SELECT * FROM SavedReport WHERE Id = ?', [Id]);
+            const singleData = await query('SELECT * FROM savedReports WHERE Id = ?', [Id]);
             if (singleData) {
                 res.status(200).json({ data: singleData });
             } else {
@@ -138,13 +138,13 @@ const getSingleSavedReportController = async (req, res) => {
 const saveConfirmtionSavedReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
-        const tableExists = await checkTableExists('SavedReport');
+        const tableExists = await checkTableExists('savedReports');
 
         if (tableExists) {
             const flattenedValues = {
                 isConfirm: true
             };
-            await updateValues('SavedReport', flattenedValues, Id);
+            await updateValues('savedReports', flattenedValues, Id);
             res.status(200).json({ message: 'Set email confirmation' });
         } else {
             res.status(200).json({
@@ -160,7 +160,7 @@ const savedReportController = async (req, res) => {
     try {
         const { fileName, reportType, period, Currency, Business, field, type, scheduler, emailLists, downloadFile, sqlQuery } = req.body;
         const defaultColumn = await AllColumns(reportType?.split(','));
-        const tableName = 'SavedReport';
+        const tableName = 'savedReports';
 
         const flattenedValues = {
             Id: uuidv4(),
@@ -204,7 +204,7 @@ const editReportController = async (req, res) => {
         const Id = req?.params?.id;
         const { reportType, period, Currency, Business, field, type, scheduler, emailLists, downloadFile, sqlQuery } = req.body;
         const defaultColumn = await AllColumns(reportType?.split(','));
-        const tableName = 'SavedReport';
+        const tableName = 'savedReports';
 
         // Flatten the values to match the columns in the database
         const flattenedValues = {
