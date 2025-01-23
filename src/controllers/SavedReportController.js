@@ -141,8 +141,20 @@ const saveConfirmtionSavedReportController = async (req, res) => {
         const tableExists = await checkTableExists('savedReports');
 
         if (tableExists) {
+            const existingRecord = await query('SELECT * FROM savedReports WHERE Id = ?', [Id]);
+
+            if (!existingRecord || existingRecord.length === 0) {
+                return res.status(404).json({ message: 'Record not found' });
+            }
+
+            const reportMetadata = existingRecord[0]?.reportMetadata
+                ? JSON.parse(existingRecord[0].reportMetadata)
+                : {};
+
+            reportMetadata.isConfirm = true;
+
             const flattenedValues = {
-                isConfirm: true
+                reportMetadata: JSON.stringify(reportMetadata)
             };
             await updateValues('savedReports', flattenedValues, Id);
             res.status(200).json({ message: 'Set email confirmation' });
@@ -179,7 +191,7 @@ const savedReportController = async (req, res) => {
                 emailLists: emailLists || null,
                 isConfirm: false,
                 downloadType: type,
-                downloadFile: downloadFile,
+                downloadFile: downloadFile || null,
                 sqlQuery: sqlQuery,
                 defaultColumns: defaultColumn
             }
@@ -206,26 +218,38 @@ const editReportController = async (req, res) => {
         const defaultColumn = await AllColumns(reportType?.split(','));
         const tableName = 'savedReports';
 
+        const existingRecord = await query('SELECT * FROM savedReports WHERE Id = ?', [Id]);
+
+        if (!existingRecord || existingRecord.length === 0) {
+            return res.status(404).json({ message: 'Record not found' });
+        }
+
+        let reportMetadata = existingRecord[0]?.reportMetadata
+            ? JSON.parse(existingRecord[0].reportMetadata)
+            : {};
+
+        reportMetadata = {
+            ...reportMetadata,
+            tables: reportType || reportMetadata.tables,
+            startDate: period?.startDate || reportMetadata.startDate || null,
+            endDate: period?.endDate || reportMetadata.endDate || null,
+            classOfBusiness: Business || reportMetadata.classOfBusiness || null,
+            originalCurrencyCode: Currency || reportMetadata.originalCurrencyCode || null,
+            field: field || reportMetadata.field,
+            scheduler: scheduler || reportMetadata.scheduler,
+            emailLists: emailLists || reportMetadata.emailLists || null,
+            downloadType: type || reportMetadata.downloadType,
+            downloadFile: downloadFile || reportMetadata.downloadFile || null,
+            sqlQuery: sqlQuery || reportMetadata.sqlQuery,
+            defaultColumns: defaultColumn || reportMetadata.defaultColumns
+        };
+
         // Flatten the values to match the columns in the database
         const flattenedValues = {
             userEmail: 'test@gmail.com',
             createdAt: new Date(),
             isDeleted: false,
-            reportMetadata: {
-                tables: reportType,
-                startDate: period ? period?.startDate : null,
-                endDate: period ? period?.endDate : null,
-                classOfBusiness: Business || null,
-                originalCurrencyCode: Currency || null,
-                field: field,
-                scheduler: scheduler,
-                emailLists: emailLists || null,
-                isConfirm: false,
-                downloadType: type,
-                downloadFile: downloadFile,
-                sqlQuery: sqlQuery,
-                defaultColumns: defaultColumn
-            }
+            reportMetadata: reportMetadata
         };
 
         // Serialize the reportMetadata object to store it as a JSON string
