@@ -10,8 +10,8 @@ router.post('/question', getQuestionsController);
 
 router.get('/saved-report', getSavedReportController);
 
-router.get('/saved-report/:filename', getSingleSavedReportController);
-router.put('/save-confirmtion-of-schedule/:filename', saveConfirmtionSavedReportController);
+router.get('/saved-report/:id', getSingleSavedReportController);
+router.put('/save-confirmtion-of-schedule/:id', saveConfirmtionSavedReportController);
 
 router.get('/data-tables', getTableListController);
 
@@ -24,7 +24,7 @@ router.post('/pdf', PDFDownloadController);
 router.post('/excel', ExcelDownloadController);
 
 router.post('/save-report', savedReportController);
-router.post('/edit-report/:filename', editReportController);
-router.delete('/delete-report/:filename', deleteSavedReportController);
+router.post('/edit-report/:id', editReportController);
+router.delete('/delete-report/:id', deleteSavedReportController);
 
 module.exports = { router };

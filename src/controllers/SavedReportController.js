@@ -1,5 +1,6 @@
 const { query } = require('../services/db');
 const { AllColumns } = require('./TableDataController');
+const { v4: uuidv4 } = require('uuid');
 
 const checkTableExists = async (tableName) => {
     const sql = `PRAGMA table_info(${ tableName })`;
@@ -31,9 +32,9 @@ const insertValues = async (tableName, values) => {
     const placeholders = Object.keys(values).map(() => '?').join(', ');
     const sql = `INSERT INTO ${ tableName } (${ columns }) VALUES (${ placeholders })`;
 
-    // Serialize the reportFilter object before inserting
-    if (values.reportFilter) {
-        values.reportFilter = JSON.stringify(values.reportFilter);
+    // Serialize the reportMetadata object before inserting
+    if (values.reportMetadata) {
+        values.reportMetadata = JSON.stringify(values.reportMetadata);
     }
 
     try {
@@ -44,12 +45,12 @@ const insertValues = async (tableName, values) => {
     }
 };
 
-const updateValues = async (tableName, values, filename) => {
+const updateValues = async (tableName, values, id) => {
     const columns = Object.keys(values).map(col => `\`${ col }\` = ?`).join(', ');
 
-    const sql = `UPDATE ${ tableName } SET ${ columns } WHERE Name = ?`;
+    const sql = `UPDATE ${ tableName } SET ${ columns } WHERE Id = ?`;
 
-    const queryParams = [...Object.values(values), filename];
+    const queryParams = [...Object.values(values), id];
 
     try {
         return await query(sql, queryParams);
@@ -97,14 +98,14 @@ const getSavedReportController = async (req, res) => {
 
 const deleteSavedReportController = async (req, res) => {
     try {
-        const fileName = req?.params?.filename;
+        const Id = req?.params?.id;
         const tableName = 'SavedReport';
 
         // Flatten the values to match the columns in the database
         const flattenedValues = {
             isDeleted: true
         };
-        await updateValues(tableName, flattenedValues, fileName);
+        await updateValues(tableName, flattenedValues, Id);
 
         res.status(200).json({ message: 'Report Deleted Successfully' });
     } catch (error) {
@@ -114,11 +115,11 @@ const deleteSavedReportController = async (req, res) => {
 
 const getSingleSavedReportController = async (req, res) => {
     try {
-        const Name = req?.params?.filename;
+        const Id = req?.params?.id;
         const tableExists = await checkTableExists('SavedReport');
 
         if (tableExists) {
-            const singleData = await query('SELECT * FROM SavedReport WHERE Name = ?', [Name]);
+            const singleData = await query('SELECT * FROM SavedReport WHERE Id = ?', [Id]);
             if (singleData) {
                 res.status(200).json({ data: singleData });
             } else {
@@ -136,14 +137,14 @@ const getSingleSavedReportController = async (req, res) => {
 
 const saveConfirmtionSavedReportController = async (req, res) => {
     try {
-        const Name = req?.params?.filename;
+        const Id = req?.params?.id;
         const tableExists = await checkTableExists('SavedReport');
 
         if (tableExists) {
             const flattenedValues = {
                 isConfirm: true
             };
-            await updateValues('SavedReport', flattenedValues, Name);
+            await updateValues('SavedReport', flattenedValues, Id);
             res.status(200).json({ message: 'Set email confirmation' });
         } else {
             res.status(200).json({
@@ -162,25 +163,26 @@ const savedReportController = async (req, res) => {
         const tableName = 'SavedReport';
 
         const flattenedValues = {
-            Name: fileName,
-            reportName: reportType,
-            email: 'test@gmail.com',
-            reportFilter: {
-                StartDate: period ? period?.startDate : null,
-                EndDate: period ? period?.endDate : null,
-                ClassOfBusiness: Business || null,
-                OriginalCurrencyCode: Currency || null,
-                Field: field
-            },
-            scheduler: scheduler,
+            Id: uuidv4(),
+            reportName: fileName,
+            userEmail: 'test@gmail.com',
+            createdAt: new Date(),
             isDeleted: false,
-            emailLists: JSON.stringify(emailLists) || null,
-            isConfirm: false,
-            downloadType: type,
-            downloadFile: downloadFile,
-            sqlQuery: sqlQuery,
-            defaultColumns: JSON.stringify(defaultColumn),
-            created_at: new Date()
+            reportMetadata: {
+                tables: reportType,
+                startDate: period ? period?.startDate : null,
+                endDate: period ? period?.endDate : null,
+                classOfBusiness: Business || null,
+                originalCurrencyCode: Currency || null,
+                field: field,
+                scheduler: scheduler,
+                emailLists: emailLists || null,
+                isConfirm: false,
+                downloadType: type,
+                downloadFile: downloadFile,
+                sqlQuery: sqlQuery,
+                defaultColumns: defaultColumn
+            }
         };
 
         const tableExists = await checkTableExists(tableName);
@@ -199,38 +201,39 @@ const savedReportController = async (req, res) => {
 
 const editReportController = async (req, res) => {
     try {
-        const FileName = req?.params?.filename;
+        const Id = req?.params?.id;
         const { reportType, period, Currency, Business, field, type, scheduler, emailLists, downloadFile, sqlQuery } = req.body;
         const defaultColumn = await AllColumns(reportType?.split(','));
         const tableName = 'SavedReport';
 
         // Flatten the values to match the columns in the database
         const flattenedValues = {
-            reportName: reportType,
-            email: 'test@gmail.com',
-            reportFilter: {
-                StartDate: period ? period?.startDate : null,
-                EndDate: period ? period?.endDate : null,
-                ClassOfBusiness: Business || null,
-                OriginalCurrencyCode: Currency || null,
-                Field: field
-            },
-            scheduler: scheduler,
+            userEmail: 'test@gmail.com',
+            createdAt: new Date(),
             isDeleted: false,
-            emailLists: JSON.stringify(emailLists) || null,
-            isConfirm: false,
-            downloadType: type,
-            downloadFile: downloadFile,
-            sqlQuery: sqlQuery,
-            defaultColumns: JSON.stringify(defaultColumn)
+            reportMetadata: {
+                tables: reportType,
+                startDate: period ? period?.startDate : null,
+                endDate: period ? period?.endDate : null,
+                classOfBusiness: Business || null,
+                originalCurrencyCode: Currency || null,
+                field: field,
+                scheduler: scheduler,
+                emailLists: emailLists || null,
+                isConfirm: false,
+                downloadType: type,
+                downloadFile: downloadFile,
+                sqlQuery: sqlQuery,
+                defaultColumns: defaultColumn
+            }
         };
 
-        // Serialize the reportFilter object to store it as a JSON string
-        if (flattenedValues.reportFilter) {
-            flattenedValues.reportFilter = JSON.stringify(flattenedValues.reportFilter);
+        // Serialize the reportMetadata object to store it as a JSON string
+        if (flattenedValues.reportMetadata) {
+            flattenedValues.reportMetadata = JSON.stringify(flattenedValues.reportMetadata);
         }
 
-        await updateValues(tableName, flattenedValues, FileName);
+        await updateValues(tableName, flattenedValues, Id);
 
         res.status(200).json({ data: flattenedValues, message: 'Report Updated Successfully' });
     } catch (error) {

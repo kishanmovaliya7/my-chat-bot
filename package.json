@@ -30,6 +30,7 @@
         "openai": "^4.78.0",
         "restify": "~11.1.0",
         "sqlite3": "^5.1.7",
+        "uuid": "^11.0.5",
         "xlsx": "^0.18.5"
     },
     "devDependencies": {
