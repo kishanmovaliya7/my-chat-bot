@@ -1,4 +1,5 @@
 const { query } = require('../services/db');
+const { deleteFileFromContainer } = require('./DownloadController');
 const { AllColumns } = require('./TableDataController');
 const { v4: uuidv4 } = require('uuid');
 
@@ -101,9 +102,23 @@ const deleteSavedReportController = async (req, res) => {
         const Id = req?.params?.id;
         const tableName = 'savedReports';
 
+        const existingRecord = await query('SELECT * FROM savedReports WHERE Id = ?', [Id]);
+
+        if (!existingRecord || existingRecord.length === 0) {
+            return res.status(404).json({ message: 'Record not found' });
+        }
+
+        let reportMetadata = existingRecord[0]?.reportMetadata
+            ? JSON.parse(existingRecord[0].reportMetadata)
+            : {};
+
+        if(reportMetadata.downloadFile) {
+            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }reports/`)[1])
+        }
         // Flatten the values to match the columns in the database
         const flattenedValues = {
-            isDeleted: true
+            isDeleted: true,
+            reportMetadata: {...reportMetadata, downloadFile: null}
         };
         await updateValues(tableName, flattenedValues, Id);
 
@@ -228,6 +243,9 @@ const editReportController = async (req, res) => {
             ? JSON.parse(existingRecord[0].reportMetadata)
             : {};
 
+        if(reportMetadata.downloadFile && downloadFile && reportMetadata.downloadFile !== downloadFile) {
+            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }reports/`)[1])
+        }
         reportMetadata = {
             ...reportMetadata,
             tables: reportType || reportMetadata.tables,

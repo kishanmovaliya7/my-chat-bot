@@ -1,5 +1,4 @@
 const { BlobServiceClient } = require('@azure/storage-blob');
-const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 const { jsPDF } = require('jspdf');
@@ -8,8 +7,11 @@ require('jspdf-autotable');
 const { getReportData } = require('../components/getReport');
 
 // Azure Blob Storage configuration
-const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
+const STORAGE_CONNECTION_STRING = process.env.STORAGE_CONNECTION_STRING
+
+const blobServiceClient = BlobServiceClient.fromConnectionString(STORAGE_CONNECTION_STRING);
+const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
 
 function getUniqueFilePath(basePath, fileName) {
     const ext = path.extname(fileName);
@@ -55,24 +57,16 @@ const PDFDownloadController = async (req, res) => {
             const pdfData = doc.output('arraybuffer');
             const pdfBuffer = Buffer.from(pdfData);
 
-            if (!AZURE_STORAGE_CONNECTION_STRING || !CONTAINER_NAME) {
-                throw new Error('Azure Storage connection details are missing in environment variables');
-            }
-
-            // Create blob service client
-            const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
-            const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
-
             // Generate unique file name
-            const uniqueFileName = `report-${ uuidv4() }.pdf`;
+            const uniqueFileName = `test@gmil.com/${Date.now()}.pdf`;
 
             // Upload file to Azure Blob Storage
             const blockBlobClient = containerClient.getBlockBlobClient(uniqueFileName);
             await blockBlobClient.upload(pdfBuffer, pdfBuffer.length, {
                 blobHTTPHeaders: { blobContentType: 'application/pdf' }
             });
-
-            const downloadUrl = `${ process.env.BASE_URL }/api/download/${ uniqueFileName }`;
+            
+            const downloadUrl = `${ process.env.STORAGE_BASE_URL }reports/${ uniqueFileName }`;
 
             res.status(200).json({ data: downloadUrl, sqlQuery: sqlQuery, message: 'Download URL generated successfully.' });
         } else {
@@ -106,7 +100,14 @@ const ExcelDownloadController = async (req, res) => {
 
             await workbook.xlsx.writeFile(filePath);
 
-            const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
+            const uniqueFileName = `test@gmil.com/${Date.now()}.xlsx`;
+
+            // Upload file to Azure Blob Storage
+            const blockBlobClient = containerClient.getBlockBlobClient(uniqueFileName);
+            await blockBlobClient.uploadFile(filePath);
+
+            const downloadUrl = `${ process.env.STORAGE_BASE_URL }reports/${ uniqueFileName }`;
+            fs.unlinkSync(filePath)
 
             res.status(200).json({ data: downloadUrl, sqlQuery: sqlQuery, message: 'Download URL generated successfully.' });
         } else {
@@ -147,4 +148,13 @@ const downloadController = async (req, res) => {
     }
 };
 
-module.exports = { PDFDownloadController, ExcelDownloadController, downloadController };
+const deleteFileFromContainer = async(url) => {
+    try {
+        await containerClient.deleteBlob(url);
+        return 'success'
+    } catch(error) {
+        return 'error'
+    }
+}
+
+module.exports = { PDFDownloadController, ExcelDownloadController, downloadController, deleteFileFromContainer };
