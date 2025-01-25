@@ -16,6 +16,7 @@
         "url": "https://github.com"
     },
     "dependencies": {
+        "@azure/storage-blob": "^12.26.0",
         "botbuilder": "~4.22.1",
         "cors": "^2.8.5",
         "cronstrue": "^2.52.0",

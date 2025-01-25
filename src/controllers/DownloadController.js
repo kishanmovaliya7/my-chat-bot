@@ -1,9 +1,15 @@
+const { BlobServiceClient } = require('@azure/storage-blob');
+const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 const { jsPDF } = require('jspdf');
 const ExcelJS = require('exceljs');
 require('jspdf-autotable');
 const { getReportData } = require('../components/getReport');
+
+// Azure Blob Storage configuration
+const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
 
 function getUniqueFilePath(basePath, fileName) {
     const ext = path.extname(fileName);
@@ -30,7 +36,6 @@ const PDFDownloadController = async (req, res) => {
             const tableData = ReportFromTable?.map(row =>
                 columnHeaders.map(header => String(row[header] || ''))
             );
-            // Add Title
             doc.setFontSize(14);
             doc.text('Report', 10, 10);
 
@@ -46,16 +51,28 @@ const PDFDownloadController = async (req, res) => {
                 theme: 'grid'
             });
 
-            const publicDir = path.join(__dirname, '..', '..', 'public');
-            if (!fs.existsSync(publicDir)) {
-                fs.mkdirSync(publicDir);
-            }
-            const { filePath, fileName } = getUniqueFilePath(publicDir, 'report.pdf');
-
+            // Convert PDF to buffer
             const pdfData = doc.output('arraybuffer');
-            fs.writeFileSync(filePath, Buffer.from(pdfData));
+            const pdfBuffer = Buffer.from(pdfData);
 
-            const downloadUrl = `${ process.env.BASE_URL }/public/${ fileName }`;
+            if (!AZURE_STORAGE_CONNECTION_STRING || !CONTAINER_NAME) {
+                throw new Error('Azure Storage connection details are missing in environment variables');
+            }
+
+            // Create blob service client
+            const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+            const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
+
+            // Generate unique file name
+            const uniqueFileName = `report-${ uuidv4() }.pdf`;
+
+            // Upload file to Azure Blob Storage
+            const blockBlobClient = containerClient.getBlockBlobClient(uniqueFileName);
+            await blockBlobClient.upload(pdfBuffer, pdfBuffer.length, {
+                blobHTTPHeaders: { blobContentType: 'application/pdf' }
+            });
+
+            const downloadUrl = `${ process.env.BASE_URL }/api/download/${ uniqueFileName }`;
 
             res.status(200).json({ data: downloadUrl, sqlQuery: sqlQuery, message: 'Download URL generated successfully.' });
         } else {
@@ -100,4 +117,34 @@ const ExcelDownloadController = async (req, res) => {
     }
 };
 
-module.exports = { PDFDownloadController, ExcelDownloadController };
+const downloadController = async (req, res) => {
+    const fileName = req.params.filename;
+
+    try {
+        const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+        const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
+        const blobClient = containerClient.getBlobClient(fileName);
+
+        const exists = await blobClient.exists();
+        if (!exists) {
+            res.status(404).send('File not found.');
+            return;
+        }
+
+        const downloadBlockBlobResponse = await blobClient.download();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${ fileName }`);
+
+        downloadBlockBlobResponse.readableStreamBody.pipe(res);
+
+        downloadBlockBlobResponse.readableStreamBody.on('end', () => {
+            console.log('File successfully streamed.');
+        });
+    } catch (error) {
+        console.error('Error downloading file:', error.message);
+        res.status(500).send('Error downloading the file.');
+    }
+};
+
+module.exports = { PDFDownloadController, ExcelDownloadController, downloadController };
