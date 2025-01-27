@@ -120,6 +120,11 @@ const deleteSavedReportController = async (req, res) => {
             isDeleted: true,
             reportMetadata: {...reportMetadata, downloadFile: null}
         };
+
+        if (flattenedValues.reportMetadata) {
+            flattenedValues.reportMetadata = JSON.stringify(flattenedValues.reportMetadata);
+        }
+
         await updateValues(tableName, flattenedValues, Id);
 
         res.status(200).json({ message: 'Report Deleted Successfully' });

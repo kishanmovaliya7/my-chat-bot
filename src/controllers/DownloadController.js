@@ -58,7 +58,7 @@ const PDFDownloadController = async (req, res) => {
             const pdfBuffer = Buffer.from(pdfData);
 
             // Generate unique file name
-            const uniqueFileName = `test@gmil.com/${Date.now()}.pdf`;
+            const uniqueFileName = `test@gmail.com/${Date.now()}.pdf`;
 
             // Upload file to Azure Blob Storage
             const blockBlobClient = containerClient.getBlockBlobClient(uniqueFileName);
@@ -100,7 +100,7 @@ const ExcelDownloadController = async (req, res) => {
 
             await workbook.xlsx.writeFile(filePath);
 
-            const uniqueFileName = `test@gmil.com/${Date.now()}.xlsx`;
+            const uniqueFileName = `test@gmail.com/${Date.now()}.xlsx`;
 
             // Upload file to Azure Blob Storage
             const blockBlobClient = containerClient.getBlockBlobClient(uniqueFileName);

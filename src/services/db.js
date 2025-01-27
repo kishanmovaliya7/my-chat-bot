@@ -2,6 +2,13 @@ const sqlite3 = require("sqlite3");
 const cron = require("node-cron");
 const XLSX = require("xlsx");
 const mailerFunction = require("../components/nodemailer");
+const { DefaultAzureCredential } = require("@azure/identity");
+const { LogicManagementClient } = require("@azure/arm-logic");
+
+const subscriptionId = process.env.AZURE_SUBSCRIPTION_ID;
+const resourceGroupName = process.env.RESOURCE_GROUP_NAME;
+const logicAppName = "Scheduler";
+const location = process.env.LOCATION;
 
 const db = new sqlite3.Database("rawData.db", (err) => {
   if (err) {
@@ -58,7 +65,7 @@ const checkTableExists = async (tableName) => {
 const createTable = async (tableName, columns) => {
   const columnsDefinition = columns
     .map((col) => {
-      return `\`${col.trim().replace(/ /g, '_')}\` TEXT`;
+      return `\`${col.trim().replace(/ /g, "_")}\` TEXT`;
     })
     .join(", ");
 
@@ -88,7 +95,9 @@ const importDataFromXlsx = async (xlsxFilePath) => {
       return;
     }
 
-    const columns = Object.keys(data[0])?.map(col => col.trim().replace(/ /g, '_').replace('100%','hundred_percentage'));
+    const columns = Object.keys(data[0])?.map((col) =>
+      col.trim().replace(/ /g, "_").replace("100%", "hundred_percentage")
+    );
 
     const tableExists = await checkTableExists(tableName);
     if (tableExists) {
@@ -114,7 +123,11 @@ const importDataFromXlsx = async (xlsxFilePath) => {
           return row[col] * 100 + "%";
         }
 
-        if (col.toLowerCase().includes("date") || col.toLowerCase().includes("inception") || col.toLowerCase().includes("expiry")) {
+        if (
+          col.toLowerCase().includes("date") ||
+          col.toLowerCase().includes("inception") ||
+          col.toLowerCase().includes("expiry")
+        ) {
           return formatDate(row[col]);
         }
 
@@ -200,34 +213,129 @@ const addEntryToSaveReport = async () => {
   }
 };
 
-const runAllCronJobs = async () => {
-  const sql = `SELECT * FROM savedReports WHERE isDeleted = 0 AND isConfirm = 1`;
-  try {
-    const data = await query(sql);
+function cronToMappedRecurrence(cronExpression) {
+    const cronParts = cronExpression.split(' ');
+    let frequency = '';
+    let interval = 1;
 
-    for (const iterator of data) {
-      await mailerFunction(iterator);
-      cron.schedule(
-        iterator.scheduler,
-        async () => {
-          console.log(iterator.Name, "Called at", new Date());
-          await mailerFunction(iterator);
-        },
-        { name: `Schedule-${iterator.Name}`, timezone: "America/New_York" }
-      );
+    // Check for frequency based on the cron expression
+    if (cronParts[0] !== '*' && cronParts[0].includes('/')) {
+        frequency = 'Minute';
+        interval = parseInt(cronParts[0].split('/')[1], 10);
+    } else if (cronParts[1] !== '*' && cronParts[1].includes('/')) {
+        frequency = 'Hour';
+        interval = parseInt(cronParts[1].split('/')[1], 10);
+    } else if (cronParts[2] !== '*' && cronParts[2].includes('/')) {
+        frequency = 'Day';
+        interval = parseInt(cronParts[2].split('/')[1], 10);
+    } else if (cronParts[3] !== '*' && cronParts[3].includes('/')) {
+        frequency = 'Month';
+        interval = parseInt(cronParts[3].split('/')[1], 10);
+    } else if (cronParts[4] !== '*' && cronParts[4].includes('/')) {
+        frequency = 'Week';
+        interval = parseInt(cronParts[4].split('/')[1], 10);
     }
 
-    return data;
-  } catch (err) {
-    console.error("Error running cron job:", err);
-  }
+    // Default to Minute and interval of 1 if no valid cron pattern found
+    if (!frequency) {
+        frequency = 'Minute';
+        interval = 1;
+    }
+
+    return {
+        frequency: frequency,
+        interval: interval
+    };
+}
+
+async function createLogicApp(iterator) {
+    const recurrence = cronToMappedRecurrence(JSON.parse(iterator?.reportMetadata)?.scheduler);
+    const reportMetadata =
+    iterator?.reportMetadata && JSON.parse(iterator?.reportMetadata);
+    const emailArray = reportMetadata?.emailLists;
+
+    try {
+        const credential = new DefaultAzureCredential();
+        const client = new LogicManagementClient(credential, subscriptionId);
+
+        const parameters = {
+            location: location,
+            definition: {
+                $schema:
+                  'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#',
+                actions: {
+                    'Send_an_email_(V2)': {
+                        runAfter: {},
+                        type: 'ApiConnection',
+                        inputs: {
+                            host: {
+                                connection: {
+                                    name: "@parameters('$connections')['outlook']['connectionId']"
+                                }
+                            },
+                            method: 'post',
+                            body: {
+                                To: emailArray.join('; '),
+                                Subject: `${ iterator?.reportName } report`,
+                                Body: `<p class="editor-paragraph">Hello, Please find the attached report for ${ iterator?.reportName }.\n\nBest regards,\nYour Team</p>`,
+                                Importance: 'Normal'
+                            },
+                            path: '/v2/Mail'
+                        }
+                    }
+                },
+                outputs: {},
+                triggers: {
+                    Recurrence: {
+                        recurrence: recurrence,
+                        type: 'Recurrence'
+                    }
+                }
+            },
+            state: 'Enabled'
+        };
+
+        await client.workflows.createOrUpdate(
+            resourceGroupName,
+            logicAppName,
+            parameters
+        );
+
+        console.log('Logic App created successfully');
+    } catch (err) {
+        console.error('Error creating Logic App:', err);
+    }
+}
+
+const runAllCronJobs = async () => {
+    const sql = `SELECT * FROM savedReports WHERE isDeleted = 0`;
+    try {
+        const data = await query(sql);
+
+        for (const iterator of data) {
+            await createLogicApp(iterator);
+        // await mailerFunction(iterator);
+        // cron.schedule(
+        //   iterator.scheduler,
+        //   async () => {
+        //     console.log(iterator.Name, "Called at", new Date());
+        //     await mailerFunction(iterator);
+        //   },
+        //   { name: `Schedule-${iterator.Name}`, timezone: "America/New_York" }
+        // );
+        }
+
+        return data;
+    } catch (err) {
+        console.error('Error running cron job:', err);
+    }
 };
 
 const runCronJobByFileName = async (field) => {
   const sql = `SELECT * FROM savedReports WHERE Name = '${field}' AND isDeleted = 0 AND isConfirm = 1`;
   try {
     const data = await query(sql);
-    if(data.length) {
+    if (data.length) {
       cron.schedule(
         data[0].scheduler,
         async () => {
@@ -236,7 +344,6 @@ const runCronJobByFileName = async (field) => {
         { name: `Schedule-${data[0].Name}`, timezone: "America/New_York" }
       );
     }
-
 
     return {
       success: true,
