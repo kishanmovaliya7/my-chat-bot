@@ -317,52 +317,22 @@ const runAllCronJobs = async () => {
         for (const iterator of data) {
             const reportMetadata = iterator?.reportMetadata && JSON.parse(iterator?.reportMetadata);
 
-            const userMessage = `${
-                reportMetadata?.tables.split(",").length > 1
-                    ? "Create a join sql query using unique field"
-                    : "Create a sql query"
-            } from ${ reportMetadata.tables } tables ${
-                reportMetadata?.startDate
-                    ? `and start date is greater than or equal to ${ reportMetadata?.startDate }`
-                    : ''
-            } ${
-                reportMetadata?.endDate
-                    ? `and end date is less than or equal to ${ reportMetadata?.endDate }`
-                    : ''
-            } ${
-                reportMetadata?.classOfBusiness
-                    ? `and Class of Business is ${ reportMetadata?.classOfBusiness }`
-                    : ''
-            } ${
-                reportMetadata?.originalCurrencyCode
-                    ? `and Original Currency Code is ${
-                        reportMetadata?.originalCurrencyCode
-                    }`
-                    : ''
-            } and return only this ${ reportMetadata.field }`;
-
-            const sqlQuery = await generateSQl(userMessage);
-            const policyData = await query(sqlQuery);
-            // await createLogicApp(iterator);
-            // await mailerFunction(iterator.reportName, reportMetadata, iterator.email, policyData);
-            const data = {
-                reportName: iterator.reportName,
-                reportMetadata,
-                email: iterator.userEmail,
-                policyData
-            };
-
-            console.log('email sending started...');
-            await axios.post(`${ process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL }/api/send-email`, data);
-            console.log('email sending successfully...');
-
             cron.schedule(
-                reportMetadata.scheduler,
+                reportMetadata?.scheduler,
                 async () => {
+                    const policyData = await query(reportMetadata?.sqlQuery);
+
+                    const data = {
+                        reportName: iterator?.reportName,
+                        reportMetadata,
+                        email: iterator?.userEmail,
+                        policyData
+                    };
+
                     console.log('schedule email sending started----');
                     await axios.post(`${ process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL }/api/send-email`, data);
                 },
-                { name: `Schedule-${ iterator.reportName }`, timezone: 'America/New_York' }
+                { name: `Schedule-${ iterator?.reportName }`, timezone: 'America/New_York' }
             );
         }
 
@@ -372,31 +342,43 @@ const runAllCronJobs = async () => {
     }
 };
 
-const runCronJobByFileName = async (field) => {
-  const sql = `SELECT * FROM savedReports WHERE Name = '${field}' AND isDeleted = 0 AND isConfirm = 1`;
-  try {
-    const data = await query(sql);
-    if (data.length) {
-      cron.schedule(
-        data[0].scheduler,
-        async () => {
-          await mailerFunction(data[0]);
-        },
-        { name: `Schedule-${data[0].Name}`, timezone: "America/New_York" }
-      );
-    }
+const runCronJobByFileName = async (filename) => {
+    const sql = `SELECT * FROM savedReports WHERE reportName = '${ filename }' AND isDeleted = 0 AND reportMetadata->>'isConfirm' = 1`;
+    try {
+        const queryData = await query(sql);
+        const reportMetadata = queryData[0]?.reportMetadata && JSON.parse(queryData[0]?.reportMetadata);
 
-    return {
-      success: true,
-      data: data,
-    };
-  } catch (err) {
-    console.error("Error running cron job:", err, sql);
-    return {
-      success: false,
-      message: err.message || "Sorry, We could not process with your answer",
-    };
-  }
+        if (queryData.length > 0) {
+            cron.schedule(
+                reportMetadata?.scheduler,
+                async () => {
+                    const policyData = await query(reportMetadata?.sqlQuery);
+
+                    const data = {
+                        reportName: queryData[0]?.reportName,
+                        reportMetadata,
+                        email: queryData[0]?.userEmail,
+                        policyData
+                    };
+
+                    console.log('schedule email sending started----');
+                    await axios.post(`${ process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL }/api/send-email`, data);
+                },
+                { name: `Schedule-${ reportMetadata?.reportName }`, timezone: "America/New_York" }
+            );
+        }
+
+        return {
+            success: true,
+            data: queryData
+        };
+    } catch (err) {
+        console.error("Error running cron job:", err, sql);
+        return {
+            success: false,
+            message: err.message || "Sorry, We could not process with your answer",
+        };
+    }
 };
 
 module.exports = {

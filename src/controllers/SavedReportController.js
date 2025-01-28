@@ -1,4 +1,4 @@
-const { query } = require('../services/db');
+const { query, runCronJobByFileName } = require('../services/db');
 const { deleteFileFromContainer } = require('./DownloadController');
 const { AllColumns } = require('./TableDataController');
 const { v4: uuidv4 } = require('uuid');
@@ -248,7 +248,7 @@ const editReportController = async (req, res) => {
             ? JSON.parse(existingRecord[0].reportMetadata)
             : {};
 
-        if(reportMetadata.downloadFile && downloadFile && reportMetadata.downloadFile !== downloadFile) {
+        if (reportMetadata.downloadFile && downloadFile && reportMetadata.downloadFile !== downloadFile) {
             await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }reports/`)[1])
         }
         reportMetadata = {
@@ -281,6 +281,7 @@ const editReportController = async (req, res) => {
         }
 
         await updateValues(tableName, flattenedValues, Id);
+        await runCronJobByFileName(existingRecord[0]?.reportName);
 
         res.status(200).json({ data: flattenedValues, message: 'Report Updated Successfully' });
     } catch (error) {
