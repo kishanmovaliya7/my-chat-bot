@@ -2,8 +2,8 @@ const sqlite3 = require("sqlite3");
 const cron = require("node-cron");
 const XLSX = require("xlsx");
 const mailerFunction = require("../components/nodemailer");
-const { DefaultAzureCredential } = require("@azure/identity");
-const { LogicManagementClient } = require("@azure/arm-logic");
+// const { DefaultAzureCredential } = require("@azure/identity");
+// const { LogicManagementClient } = require("@azure/arm-logic");
 const { generateSQl } = require("../components/getTableDataFromQuery");
 const axios = require('axios');
 
@@ -250,64 +250,64 @@ function cronToMappedRecurrence(cronExpression) {
     };
 }
 
-async function createLogicApp(iterator) {
-    const recurrence = cronToMappedRecurrence(JSON.parse(iterator?.reportMetadata)?.scheduler);
-    const reportMetadata =
-    iterator?.reportMetadata && JSON.parse(iterator?.reportMetadata);
-    const emailArray = reportMetadata?.emailLists;
+// async function createLogicApp(iterator) {
+//     const recurrence = cronToMappedRecurrence(JSON.parse(iterator?.reportMetadata)?.scheduler);
+//     const reportMetadata =
+//     iterator?.reportMetadata && JSON.parse(iterator?.reportMetadata);
+//     const emailArray = reportMetadata?.emailLists;
 
-    try {
-        const credential = new DefaultAzureCredential();
-        const client = new LogicManagementClient(credential, subscriptionId);
+//     try {
+//         const credential = new DefaultAzureCredential();
+//         const client = new LogicManagementClient(credential, subscriptionId);
 
-        const parameters = {
-            location: location,
-            definition: {
-                $schema:
-                  'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#',
-                actions: {
-                    'Send_an_email_(V2)': {
-                        runAfter: {},
-                        type: 'ApiConnection',
-                        inputs: {
-                            host: {
-                                connection: {
-                                    name: "@parameters('$connections')['outlook']['connectionId']"
-                                }
-                            },
-                            method: 'post',
-                            body: {
-                                To: emailArray.join('; '),
-                                Subject: `${ iterator?.reportName } report`,
-                                Body: `<p class="editor-paragraph">Hello, Please find the attached report for ${ iterator?.reportName }.\n\nBest regards,\nYour Team</p>`,
-                                Importance: 'Normal'
-                            },
-                            path: '/v2/Mail'
-                        }
-                    }
-                },
-                outputs: {},
-                triggers: {
-                    Recurrence: {
-                        recurrence: recurrence,
-                        type: 'Recurrence'
-                    }
-                }
-            },
-            state: 'Enabled'
-        };
+//         const parameters = {
+//             location: location,
+//             definition: {
+//                 $schema:
+//                   'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#',
+//                 actions: {
+//                     'Send_an_email_(V2)': {
+//                         runAfter: {},
+//                         type: 'ApiConnection',
+//                         inputs: {
+//                             host: {
+//                                 connection: {
+//                                     name: "@parameters('$connections')['outlook']['connectionId']"
+//                                 }
+//                             },
+//                             method: 'post',
+//                             body: {
+//                                 To: emailArray.join('; '),
+//                                 Subject: `${ iterator?.reportName } report`,
+//                                 Body: `<p class="editor-paragraph">Hello, Please find the attached report for ${ iterator?.reportName }.\n\nBest regards,\nYour Team</p>`,
+//                                 Importance: 'Normal'
+//                             },
+//                             path: '/v2/Mail'
+//                         }
+//                     }
+//                 },
+//                 outputs: {},
+//                 triggers: {
+//                     Recurrence: {
+//                         recurrence: recurrence,
+//                         type: 'Recurrence'
+//                     }
+//                 }
+//             },
+//             state: 'Enabled'
+//         };
 
-        await client.workflows.createOrUpdate(
-            resourceGroupName,
-            logicAppName,
-            parameters
-        );
+//         await client.workflows.createOrUpdate(
+//             resourceGroupName,
+//             logicAppName,
+//             parameters
+//         );
 
-        console.log('Logic App created successfully');
-    } catch (err) {
-        console.error('Error creating Logic App:', err);
-    }
-}
+//         console.log('Logic App created successfully');
+//     } catch (err) {
+//         console.error('Error creating Logic App:', err);
+//     }
+// }
 
 const runAllCronJobs = async () => {
     const sql = `SELECT * FROM savedReports WHERE isDeleted = 0 AND reportMetadata->>'isConfirm' = 1`;
@@ -316,11 +316,35 @@ const runAllCronJobs = async () => {
 
         for (const iterator of data) {
             const reportMetadata = iterator?.reportMetadata && JSON.parse(iterator?.reportMetadata);
+            const userMessage = `${
+                reportMetadata?.tables.split(",").length > 1
+                    ? "Create a join sql query using unique field"
+                    : "Create a sql query"
+            } from ${ reportMetadata.tables } tables ${
+                reportMetadata?.startDate
+                    ? `and start date is greater than or equal to ${ reportMetadata?.startDate }`
+                    : ''
+            } ${
+                reportMetadata?.endDate
+                    ? `and end date is less than or equal to ${ reportMetadata?.endDate }`
+                    : ''
+            } ${
+                reportMetadata?.classOfBusiness
+                    ? `and Class of Business is ${ reportMetadata?.classOfBusiness }`
+                    : ''
+            } ${
+                reportMetadata?.originalCurrencyCode
+                    ? `and Original Currency Code is ${
+                        reportMetadata?.originalCurrencyCode
+                    }`
+                    : '' } and return only this ${ reportMetadata?.field }`;
 
             cron.schedule(
                 reportMetadata?.scheduler,
                 async () => {
-                    const policyData = await query(reportMetadata?.sqlQuery);
+                    const queryString = reportMetadata.sqlQuery ? reportMetadata?.sqlQuery : userMessage;
+
+                    const policyData = await query(queryString);
 
                     const data = {
                         reportName: iterator?.reportName,
@@ -347,12 +371,36 @@ const runCronJobByFileName = async (filename) => {
     try {
         const queryData = await query(sql);
         const reportMetadata = queryData[0]?.reportMetadata && JSON.parse(queryData[0]?.reportMetadata);
+        const userMessage = `${
+            reportMetadata?.tables.split(",").length > 1
+                ? "Create a join sql query using unique field"
+                : "Create a sql query"
+        } from ${ reportMetadata.tables } tables ${
+            reportMetadata?.startDate
+                ? `and start date is greater than or equal to ${ reportMetadata?.startDate }`
+                : ''
+        } ${
+            reportMetadata?.endDate
+                ? `and end date is less than or equal to ${ reportMetadata?.endDate }`
+                : ''
+        } ${
+            reportMetadata?.classOfBusiness
+                ? `and Class of Business is ${ reportMetadata?.classOfBusiness }`
+                : ''
+        } ${
+            reportMetadata?.originalCurrencyCode
+                ? `and Original Currency Code is ${
+                    reportMetadata?.originalCurrencyCode
+                }`
+                : '' } and return only this ${ reportMetadata?.field }`;
 
         if (queryData.length > 0) {
             cron.schedule(
                 reportMetadata?.scheduler,
                 async () => {
-                    const policyData = await query(reportMetadata?.sqlQuery);
+                    const queryString = reportMetadata.sqlQuery ? reportMetadata?.sqlQuery : userMessage;
+
+                    const policyData = await query(queryString);
 
                     const data = {
                         reportName: queryData[0]?.reportName,

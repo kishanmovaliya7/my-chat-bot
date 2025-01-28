@@ -16,8 +16,6 @@
         "url": "https://github.com"
     },
     "dependencies": {
-        "@azure/arm-logic": "^8.2.0",
-        "@azure/identity": "^4.6.0",
         "@azure/storage-blob": "^12.26.0",
         "botbuilder": "~4.22.1",
         "cors": "^2.8.5",
