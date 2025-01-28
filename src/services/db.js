@@ -4,6 +4,8 @@ const XLSX = require("xlsx");
 const mailerFunction = require("../components/nodemailer");
 const { DefaultAzureCredential } = require("@azure/identity");
 const { LogicManagementClient } = require("@azure/arm-logic");
+const { generateSQl } = require("../components/getTableDataFromQuery");
+const axios = require('axios');
 
 const subscriptionId = process.env.AZURE_SUBSCRIPTION_ID;
 const resourceGroupName = process.env.RESOURCE_GROUP_NAME;
@@ -219,21 +221,21 @@ function cronToMappedRecurrence(cronExpression) {
     let interval = 1;
 
     // Check for frequency based on the cron expression
-    if (cronParts[0] !== '*' && cronParts[0].includes('/')) {
+    if (cronParts[0] !== '*') {
         frequency = 'Minute';
-        interval = parseInt(cronParts[0].split('/')[1], 10);
-    } else if (cronParts[1] !== '*' && cronParts[1].includes('/')) {
+        interval = parseInt(cronParts[0], 10);
+    } else if (cronParts[1] !== '*') {
         frequency = 'Hour';
-        interval = parseInt(cronParts[1].split('/')[1], 10);
-    } else if (cronParts[2] !== '*' && cronParts[2].includes('/')) {
+        interval = parseInt(cronParts[1], 10);
+    } else if (cronParts[2] !== '*') {
         frequency = 'Day';
-        interval = parseInt(cronParts[2].split('/')[1], 10);
-    } else if (cronParts[3] !== '*' && cronParts[3].includes('/')) {
+        interval = parseInt(cronParts[2], 10);
+    } else if (cronParts[3] !== '*') {
         frequency = 'Month';
-        interval = parseInt(cronParts[3].split('/')[1], 10);
-    } else if (cronParts[4] !== '*' && cronParts[4].includes('/')) {
+        interval = parseInt(cronParts[3], 10);
+    } else if (cronParts[4] !== '*') {
         frequency = 'Week';
-        interval = parseInt(cronParts[4].split('/')[1], 10);
+        interval = parseInt(cronParts[4], 10);
     }
 
     // Default to Minute and interval of 1 if no valid cron pattern found
@@ -308,21 +310,60 @@ async function createLogicApp(iterator) {
 }
 
 const runAllCronJobs = async () => {
-    const sql = `SELECT * FROM savedReports WHERE isDeleted = 0`;
+    const sql = `SELECT * FROM savedReports WHERE isDeleted = 0 AND reportMetadata->>'isConfirm' = 1`;
     try {
         const data = await query(sql);
 
         for (const iterator of data) {
-            await createLogicApp(iterator);
-        // await mailerFunction(iterator);
-        // cron.schedule(
-        //   iterator.scheduler,
-        //   async () => {
-        //     console.log(iterator.Name, "Called at", new Date());
-        //     await mailerFunction(iterator);
-        //   },
-        //   { name: `Schedule-${iterator.Name}`, timezone: "America/New_York" }
-        // );
+            const reportMetadata = iterator?.reportMetadata && JSON.parse(iterator?.reportMetadata);
+
+            const userMessage = `${
+                reportMetadata?.tables.split(",").length > 1
+                    ? "Create a join sql query using unique field"
+                    : "Create a sql query"
+            } from ${ reportMetadata.tables } tables ${
+                reportMetadata?.startDate
+                    ? `and start date is greater than or equal to ${ reportMetadata?.startDate }`
+                    : ''
+            } ${
+                reportMetadata?.endDate
+                    ? `and end date is less than or equal to ${ reportMetadata?.endDate }`
+                    : ''
+            } ${
+                reportMetadata?.classOfBusiness
+                    ? `and Class of Business is ${ reportMetadata?.classOfBusiness }`
+                    : ''
+            } ${
+                reportMetadata?.originalCurrencyCode
+                    ? `and Original Currency Code is ${
+                        reportMetadata?.originalCurrencyCode
+                    }`
+                    : ''
+            } and return only this ${ reportMetadata.field }`;
+
+            const sqlQuery = await generateSQl(userMessage);
+            const policyData = await query(sqlQuery);
+            // await createLogicApp(iterator);
+            // await mailerFunction(iterator.reportName, reportMetadata, iterator.email, policyData);
+            const data = {
+                reportName: iterator.reportName,
+                reportMetadata,
+                email: iterator.userEmail,
+                policyData
+            };
+
+            console.log('email sending started...');
+            await axios.post(`${ process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL }/api/send-email`, data);
+            console.log('email sending successfully...');
+
+            cron.schedule(
+                reportMetadata.scheduler,
+                async () => {
+                    console.log('schedule email sending started----');
+                    await axios.post(`${ process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL }/api/send-email`, data);
+                },
+                { name: `Schedule-${ iterator.reportName }`, timezone: 'America/New_York' }
+            );
         }
 
         return data;
