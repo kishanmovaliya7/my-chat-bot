@@ -18,14 +18,15 @@ const { SQLquery } = require('../services/dbConnect');
 
 const getTableListController = async (req, res) => {
     try {
-        const queryString = `
-            SELECT TABLE_SCHEMA, TABLE_NAME 
-            FROM INFORMATION_SCHEMA.TABLES 
-            WHERE TABLE_TYPE = 'BASE TABLE';
-        `;
+        // const queryString = `
+        //     SELECT TABLE_SCHEMA, TABLE_NAME 
+        //     FROM INFORMATION_SCHEMA.TABLES 
+        //     WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('dim_policy', 'fact_premium', 'dim_claims');
+        // `;
 
-        const tables = await SQLquery(queryString);
-        const tableNames = tables.map(row => `${row.TABLE_SCHEMA}.${row.TABLE_NAME}`);
+        // const tables = await SQLquery(queryString);
+        // const tableNames = tables.map(row => `${row.TABLE_SCHEMA}.${row.TABLE_NAME}`);
+        const tableNames = [{label: 'Policy', value: "dwh.dim_policy"}, {label:"Claims", value: "dwh.dim_claims"},{label: "Premium", value: "dwh.fact_premium"}];
 
         if (tableNames.length > 0) {
             res.status(200).json({data:tableNames });
