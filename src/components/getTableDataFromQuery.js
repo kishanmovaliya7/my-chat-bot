@@ -1,5 +1,6 @@
 const { AzureOpenAI } = require('openai');
 const sqlite3 = require("sqlite3");
+const { SQLquery } = require('../services/dbConnect');
 // const { query } = require('../services/db');
 
 // Azure OpenAI Configuration
@@ -8,12 +9,12 @@ const apiKey = process.env.AZURE_OPENAI_API_KEY; // Use API Key or Token Provide
 const modelDeployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'depmodel';
 
 const client = new AzureOpenAI({
-          endpoint,
-          apiKey,
-          apiVersion: '2024-08-01-preview',
-          deployment: modelDeployment,
-        });
-    
+  endpoint,
+  apiKey,
+  apiVersion: '2024-08-01-preview',
+  deployment: modelDeployment,
+});
+
 let pool = null;
 
 // Function to connect to the database
@@ -29,37 +30,49 @@ async function connectToDatabase() {
 
 
 const db = new sqlite3.Database('rawData.db', (err) => {
-    if (err) {
-        console.log('Error Occurred - ' + err.message);
-    } else {
-        console.log('Database Connected');
-    }
+  if (err) {
+    console.log('Error Occurred - ' + err.message);
+  } else {
+    console.log('Database Connected');
+  }
 });
 
 
 const query = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            resolve(rows);
-        });
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(rows);
     });
+  });
 };
 
 
 // Function to fetch database schema
 async function getDatabaseInfo() {
   try {
-    // const tableResult = await query(`
+    // const tableResult = await SQLquery(`
     //   SELECT TABLE_NAME 
     //   FROM INFORMATION_SCHEMA.TABLES 
     //   WHERE TABLE_TYPE = 'BASE TABLE'
     // `);
-
-    const tableResult = await query('SELECT * FROM sqlite_master WHERE type="table"')
+    const tableResult = await SQLquery(`SELECT TABLE_NAME AS name, 'table' AS type FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_CATALOG = DB_NAME();`)
+//     const tableResult = await SQLquery(`
+//       SELECT 
+//     COLUMN_NAME, 
+//     DATA_TYPE, 
+//     IS_NULLABLE, 
+//     COLUMN_DEFAULT, 
+//     CHARACTER_MAXIMUM_LENGTH, 
+//     NUMERIC_PRECISION, 
+//     NUMERIC_SCALE
+// FROM INFORMATION_SCHEMA.COLUMNS
+// WHERE TABLE_CATALOG = DB_NAME()
+//   `);
+    // const tableResult = await query('SELECT * FROM sqlite_master WHERE type="table"')
 
     return tableResult;
   } catch (error) {
@@ -70,6 +83,9 @@ async function getDatabaseInfo() {
 
 // Function to format schema info
 function formatDatabaseSchemaInfo(schemaDict) {
+  console.log("schemaDict----", schemaDict);
+  
+
   return schemaDict
     .map(
       (table) =>
@@ -92,7 +108,7 @@ async function askDatabase(sqlquery) {
 
 const generateSQl = async (userMessage) => {
   try {
- 
+
     const schemaDict = await getDatabaseInfo();
     const schemaString = formatDatabaseSchemaInfo(schemaDict);
 
@@ -103,67 +119,68 @@ const generateSQl = async (userMessage) => {
       max_tokens: 1024,
       top_p: 1,
       tools: [
-          {
-              type: 'function',
-              function: {
-                  name: 'askDatabase',
-                  description: `Use this function to answer user questions. Output should be a fully formed SQL query.`,
-                  parameters: {
-                    type: 'object',
-                    properties: {
-                      query: {
-                        type: 'string',
-                        description: `
-                        SQLite query extracting info to answer the user's question.
+        {
+          type: 'function',
+          function: {
+            name: 'askDatabase',
+            description: `Use this function to answer user questions. Output should be a fully formed SQL query.`,
+            parameters: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: `
+                        SQL query extracting info to answer the user's question.
                         SQL should be written using this database schema:
                         ${schemaString}
                           The query should be returned in plain text, not in JSON
                         `,
-                      },
-                    },
-                    required: ['query'],
-                  },
-              }
-          },
-        ],
+                },
+              },
+              required: ['query'],
+            },
+          }
+        },
+      ],
       tool_choice: 'auto'
     })
     const queryCall = completion.choices[0]?.message?.tool_calls[0];
     if (queryCall) {
       const arguments = JSON.parse(queryCall.function.arguments);
       const sqlQuery = arguments.query
-  
+      console.log("sqlQuery-----******", sqlQuery)
+
       return sqlQuery;
     }
     return null
-  } catch(error) {
+  } catch (error) {
     return null
   }
 }
 
 async function getTableDataFromQuery(context, selectedValues) {
 
-    
-try {
-  const userMessage = context?.activity?.text;
-  const sqlQuery = await generateSQl(userMessage)
-  if(sqlQuery) {
-    const result = await askDatabase(sqlQuery);
-    const completionResponse = await client.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'user', content: userMessage },
-        { role: 'function', content: JSON.stringify(result),name: 'askDatabase'}
-      ]
-    });
-    await context.sendActivity(completionResponse.choices[0].message.content);
-  } else {
-    await context.sendActivity(`Apologies, I couldn't find the information or match you were looking for. Please try rephrasing your query or provide more details, and I'll do my best to assist you!`);
-  }
-} catch(error) {
+
+  try {
+    const userMessage = context?.activity?.text;
+    const sqlQuery = await generateSQl(userMessage)
+    if (sqlQuery) {
+      const result = await askDatabase(sqlQuery);
+      const completionResponse = await client.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'user', content: userMessage },
+          { role: 'function', content: JSON.stringify(result), name: 'askDatabase' }
+        ]
+      });
+      await context.sendActivity(completionResponse.choices[0].message.content);
+    } else {
+      await context.sendActivity(`Apologies, I couldn't find the information or match you were looking for. Please try rephrasing your query or provide more details, and I'll do my best to assist you!`);
+    }
+  } catch (error) {
     console.log(error)
-}
-    // await askDatabase(schemaString, userMessage, context)
+  }
+  // await askDatabase(schemaString, userMessage, context)
 }
 
 

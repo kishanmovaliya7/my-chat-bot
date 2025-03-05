@@ -1,16 +1,7 @@
 const sqlite3 = require("sqlite3");
 const cron = require("node-cron");
 const XLSX = require("xlsx");
-const mailerFunction = require("../components/nodemailer");
-const { DefaultAzureCredential } = require("@azure/identity");
-const { LogicManagementClient } = require("@azure/arm-logic");
-const { generateSQl } = require("../components/getTableDataFromQuery");
 const axios = require('axios');
-
-const subscriptionId = process.env.AZURE_SUBSCRIPTION_ID;
-const resourceGroupName = process.env.RESOURCE_GROUP_NAME;
-const logicAppName = "Scheduler";
-const location = process.env.LOCATION;
 
 const db = new sqlite3.Database("rawData.db", (err) => {
   if (err) {
@@ -215,100 +206,6 @@ const addEntryToSaveReport = async () => {
   }
 };
 
-function cronToMappedRecurrence(cronExpression) {
-    const cronParts = cronExpression.split(' ');
-    let frequency = '';
-    let interval = 1;
-
-    // Check for frequency based on the cron expression
-    if (cronParts[0] !== '*') {
-        frequency = 'Minute';
-        interval = parseInt(cronParts[0], 10);
-    } else if (cronParts[1] !== '*') {
-        frequency = 'Hour';
-        interval = parseInt(cronParts[1], 10);
-    } else if (cronParts[2] !== '*') {
-        frequency = 'Day';
-        interval = parseInt(cronParts[2], 10);
-    } else if (cronParts[3] !== '*') {
-        frequency = 'Month';
-        interval = parseInt(cronParts[3], 10);
-    } else if (cronParts[4] !== '*') {
-        frequency = 'Week';
-        interval = parseInt(cronParts[4], 10);
-    }
-
-    // Default to Minute and interval of 1 if no valid cron pattern found
-    if (!frequency) {
-        frequency = 'Minute';
-        interval = 1;
-    }
-
-    return {
-        frequency: frequency,
-        interval: interval
-    };
-}
-
-async function createLogicApp(iterator) {
-    const recurrence = cronToMappedRecurrence(JSON.parse(iterator?.reportMetadata)?.scheduler);
-    const reportMetadata =
-    iterator?.reportMetadata && JSON.parse(iterator?.reportMetadata);
-    const emailArray = reportMetadata?.emailLists;
-
-    try {
-        const credential = new DefaultAzureCredential();
-        const client = new LogicManagementClient(credential, subscriptionId);
-
-        const parameters = {
-            location: location,
-            definition: {
-                $schema:
-                  'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#',
-                actions: {
-                    'Send_an_email_(V2)': {
-                        runAfter: {},
-                        type: 'ApiConnection',
-                        inputs: {
-                            host: {
-                                connection: {
-                                    name: "@parameters('$connections')['outlook']['connectionId']"
-                                }
-                            },
-                            method: 'post',
-                            body: {
-                                To: emailArray.join('; '),
-                                Subject: `${ iterator?.reportName } report`,
-                                Body: `<p class="editor-paragraph">Hello, Please find the attached report for ${ iterator?.reportName }.\n\nBest regards,\nYour Team</p>`,
-                                Importance: 'Normal'
-                            },
-                            path: '/v2/Mail'
-                        }
-                    }
-                },
-                outputs: {},
-                triggers: {
-                    Recurrence: {
-                        recurrence: recurrence,
-                        type: 'Recurrence'
-                    }
-                }
-            },
-            state: 'Enabled'
-        };
-
-        await client.workflows.createOrUpdate(
-            resourceGroupName,
-            logicAppName,
-            parameters
-        );
-
-        console.log('Logic App created successfully');
-    } catch (err) {
-        console.error('Error creating Logic App:', err);
-    }
-}
-
 const runAllCronJobs = async () => {
     const sql = `SELECT * FROM savedReports WHERE isDeleted = 0 AND reportMetadata->>'isConfirm' = 1`;
     try {
@@ -329,8 +226,8 @@ const runAllCronJobs = async () => {
                         policyData
                     };
 
-                    console.log('schedule email sending started----');
-                    await axios.post(`${ process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL }/api/send-email`, data);
+                    console.log('schedule email sending started----', process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL);
+                    await axios.post(`${ process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL }/api/send-email?code=pnIYInY7qPQzUo5micHXsJYb6pm6C3MRZoqX7czvoBh2AzFurW9PNw%3D%3D`, data);
                 },
                 { name: `Schedule-${ iterator?.reportName }`, timezone: 'America/New_York' }
             );

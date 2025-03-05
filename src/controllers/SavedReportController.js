@@ -113,7 +113,7 @@ const deleteSavedReportController = async (req, res) => {
             : {};
 
         if(reportMetadata.downloadFile) {
-            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }reports/`)[1])
+            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }/reports/`)[1])
         }
         // Flatten the values to match the columns in the database
         const flattenedValues = {
@@ -249,7 +249,7 @@ const editReportController = async (req, res) => {
             : {};
 
         if (reportMetadata.downloadFile && downloadFile && reportMetadata.downloadFile !== downloadFile) {
-            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }reports/`)[1])
+            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }/reports/`)[1])
         }
         reportMetadata = {
             ...reportMetadata,

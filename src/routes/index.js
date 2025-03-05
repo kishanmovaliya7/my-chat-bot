@@ -12,14 +12,14 @@ router.get('/saved-report', getSavedReportController);
 router.get('/saved-report/:id', getSingleSavedReportController);
 router.put('/save-confirmtion-of-schedule/:id', saveConfirmtionSavedReportController);
 
-router.get('/data-tables', getTableListController);
+router.get('/data-tables', getTableListController); // done
 
-router.get('/business', getBusinessValue);
-router.get('/currency', getCurrencyValue);
+router.get('/business', getBusinessValue); // done
+router.get('/currency', getCurrencyValue); // done
 
-router.get('/all-fields', getAllColumns);
+router.get('/all-fields', getAllColumns); // done
 
-router.post('/pdf', PDFDownloadController);
+router.post('/pdf', PDFDownloadController); // working
 router.post('/excel', ExcelDownloadController);
 router.get('/download/:filename', downloadController);
 

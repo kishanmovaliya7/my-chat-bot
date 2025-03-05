@@ -17,7 +17,7 @@ const {
 } = require('botbuilder');
 
 const { EchoBot } = require('./bot');
-const { importDataFromXlsx, runAllCronJobs, addEntryToSaveReport } = require('./src/services/db');
+const { runAllCronJobs } = require('./src/services/db');
 const { router } = require('./src/routes');
 
 // Create HTTP server
@@ -28,17 +28,7 @@ app.use(cors({ origin: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', router);
 
-// import excel file data in sqlite database
-const xlsxFilePath = path.join(__dirname, 'RawData.xlsx');
-const tableName = 'rawDataTable';
-
-importDataFromXlsx(xlsxFilePath, tableName)
-    .then(() => console.log('Import finished successfully.'))
-    .catch(err => console.log('Error importing data:', err));
-
-// addEntryToSaveReport();
 runAllCronJobs();
-// dropTable()
 
 const credentialsFactory = new ConfigurationServiceClientCredentialFactory({
     MicrosoftAppId: process.env.MicrosoftAppId,
@@ -75,38 +65,6 @@ app.post('/api/messages', async (req, res) => {
     await adapter.process(req, res, (context) => myBot.run(context));
 });
 
-app.get('/public/:filename', (req, res, next) => {
-    const fileName = req.params.filename;
-    const filePath = path.join(__dirname, 'public', fileName);
-
-    if (!fs.existsSync(filePath)) {
-        res.writeHead(404);
-        res.end('File not found');
-        return next();
-    }
-
-    // Set headers for file download
-    res.writeHead(200, {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=${ fileName }`
-    });
-
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-
-    fileStream.on('error', (error) => {
-        console.error('Stream error:', error);
-        res.writeHead(500);
-        res.end('Error streaming file');
-        return next(error);
-    });
-
-    fileStream.pipe(res);
-    res.on('finish', () => {
-        return next();
-    });
-});
-
 app.on('upgrade', async (req, socket, head) => {
     const streamingAdapter = new CloudAdapter(botFrameworkAuthentication);
 
@@ -115,8 +73,6 @@ app.on('upgrade', async (req, socket, head) => {
     await streamingAdapter.process(req, socket, head, (context) => myBot.run(context));
 });
 app.listen(process.env.port || process.env.PORT || 3978, async () => {
-    // const aa = await query('select * from savedReports;');
-    // console.log(aa)
     console.log(`\n${ app.name } listening to ${ app.url }`);
     console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
     console.log('\nTo talk to your bot, open the emulator select "Open Bot"');

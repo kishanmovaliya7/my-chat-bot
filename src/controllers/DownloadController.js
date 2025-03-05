@@ -66,7 +66,7 @@ const PDFDownloadController = async (req, res) => {
                 blobHTTPHeaders: { blobContentType: 'application/pdf' }
             });
             
-            const downloadUrl = `${ process.env.STORAGE_BASE_URL }reports/${ uniqueFileName }`;
+            const downloadUrl = `${ process.env.STORAGE_BASE_URL }/reports/${ uniqueFileName }`;
 
             res.status(200).json({ data: downloadUrl, sqlQuery: sqlQuery, message: 'Download URL generated successfully.' });
         } else {
@@ -106,7 +106,7 @@ const ExcelDownloadController = async (req, res) => {
             const blockBlobClient = containerClient.getBlockBlobClient(uniqueFileName);
             await blockBlobClient.uploadFile(filePath);
 
-            const downloadUrl = `${ process.env.STORAGE_BASE_URL }reports/${ uniqueFileName }`;
+            const downloadUrl = `${ process.env.STORAGE_BASE_URL }/reports/${ uniqueFileName }`;
             fs.unlinkSync(filePath)
 
             res.status(200).json({ data: downloadUrl, sqlQuery: sqlQuery, message: 'Download URL generated successfully.' });
