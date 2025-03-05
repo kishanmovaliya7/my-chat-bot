@@ -213,11 +213,35 @@ const runAllCronJobs = async () => {
 
         for (const iterator of data) {
             const reportMetadata = iterator?.reportMetadata && JSON.parse(iterator?.reportMetadata);
+            const userMessage = `${
+                reportMetadata?.tables.split(",").length > 1
+                    ? "Create a join sql query using unique field"
+                    : "Create a sql query"
+            } from ${ reportMetadata.tables } tables ${
+                reportMetadata?.startDate
+                    ? `and start date is greater than or equal to ${ reportMetadata?.startDate }`
+                    : ''
+            } ${
+                reportMetadata?.endDate
+                    ? `and end date is less than or equal to ${ reportMetadata?.endDate }`
+                    : ''
+            } ${
+                reportMetadata?.classOfBusiness
+                    ? `and Class of Business is ${ reportMetadata?.classOfBusiness }`
+                    : ''
+            } ${
+                reportMetadata?.originalCurrencyCode
+                    ? `and Original Currency Code is ${
+                        reportMetadata?.originalCurrencyCode
+                    }`
+                    : '' } and return only this ${ reportMetadata?.field }`;
 
             cron.schedule(
                 reportMetadata?.scheduler,
                 async () => {
-                    const policyData = await query(reportMetadata?.sqlQuery);
+                    const queryString = reportMetadata.sqlQuery ? reportMetadata?.sqlQuery : userMessage;
+
+                    const policyData = await query(queryString);
 
                     const data = {
                         reportName: iterator?.reportName,
@@ -244,12 +268,36 @@ const runCronJobByFileName = async (filename) => {
     try {
         const queryData = await query(sql);
         const reportMetadata = queryData[0]?.reportMetadata && JSON.parse(queryData[0]?.reportMetadata);
+        const userMessage = `${
+            reportMetadata?.tables.split(",").length > 1
+                ? "Create a join sql query using unique field"
+                : "Create a sql query"
+        } from ${ reportMetadata.tables } tables ${
+            reportMetadata?.startDate
+                ? `and start date is greater than or equal to ${ reportMetadata?.startDate }`
+                : ''
+        } ${
+            reportMetadata?.endDate
+                ? `and end date is less than or equal to ${ reportMetadata?.endDate }`
+                : ''
+        } ${
+            reportMetadata?.classOfBusiness
+                ? `and Class of Business is ${ reportMetadata?.classOfBusiness }`
+                : ''
+        } ${
+            reportMetadata?.originalCurrencyCode
+                ? `and Original Currency Code is ${
+                    reportMetadata?.originalCurrencyCode
+                }`
+                : '' } and return only this ${ reportMetadata?.field }`;
 
         if (queryData.length > 0) {
             cron.schedule(
                 reportMetadata?.scheduler,
                 async () => {
-                    const policyData = await query(reportMetadata?.sqlQuery);
+                    const queryString = reportMetadata.sqlQuery ? reportMetadata?.sqlQuery : userMessage;
+
+                    const policyData = await query(queryString);
 
                     const data = {
                         reportName: queryData[0]?.reportName,
