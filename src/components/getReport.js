@@ -1,4 +1,3 @@
-const { query } = require('../services/db');
 const { SQLquery } = require('../services/dbConnect');
 const { generateSQl } = require('./getTableDataFromQuery');
 
@@ -37,12 +36,11 @@ const { generateSQl } = require('./getTableDataFromQuery');
 
 async function getReportData(selectedValues) {
     const { reportType, period, Business, Currency, field } = selectedValues;
-
+    
     const ReportLength = reportType?.split(',')?.length;
-    const userMessage = `Create a ${ ReportLength > 1 ? 'join sql query using unique field from' + reportType + 'tables' : 'sql query from' + reportType + 'table' } and Include a WHERE clause with a ${ period?.startDate && `Start_Date greater then equal to ${ period?.startDate }` } ${ period?.endDate && `, end date less then equal to ${ period?.endDate }` } ${ (Business?.business) && `, class_of_business_code is ${ Business?.business }` } ${ (Currency) && `, currency_code is ${ Currency }` }  and return only this ${ field } Ignore the filter columns are not a valid column. `;
+    const userMessage = `Create a ${ ReportLength > 1 ? 'join sql query using unique field from' + reportType + 'tables' : 'sql query from' + reportType + 'table' } and Include a WHERE clause with a ${ period?.startDate && `Start Date greater then equal to ${ period?.startDate }` } ${ period?.endDate && `, End Date less then equal to ${ period?.endDate }` } ${ (Business?.business) && `, class of business name is ${ Business?.business }` } ${ (Currency) && `, currency code is ${ Currency }` }  and return only this ${ field } Ignore the filter columns are not a valid column. `;
 
     const sqlQuery = await generateSQl(userMessage);
-    console.log('sqlQuery*******', sqlQuery);
 
     try {
         const response = await SQLquery(sqlQuery);

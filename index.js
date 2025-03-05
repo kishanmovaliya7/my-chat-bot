@@ -17,18 +17,42 @@ const {
 } = require('botbuilder');
 
 const { EchoBot } = require('./bot');
-const { runAllCronJobs } = require('./src/services/db');
 const { router } = require('./src/routes');
+const { poolPromise, runAllCronJobs, createBotReportTable } = require('./src/services/dbConnect');
 
 // Create HTTP server
 // const server = restify.createServer();
 // server.use(restify.plugins.bodyParser());
+
+const dbConnection = async () => {
+    const connection = await poolPromise;
+    // const request = connection.request();
+
+    // const result = await request.query(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('fact_policy_dtl', 'fact_premium', 'fact_claims_dtl') and TABLE_SCHEMA='dwh'`);
+    
+    // const data= result.recordset;
+    // const tables = data.reduce((acc, cur) => {
+    //     const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
+    //     if(acc?.[tableName]) {
+    //         acc[tableName] = [...acc[tableName], `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
+    //     } else {
+    //         acc[tableName] = [ `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
+    //     }
+    //     return acc;
+    // }, {})
+    
+    // const dbSchema = Object.entries(tables)?.map(table => `create table ${table[0]} (${table[1].join(', ')})`);
+    // // console.log(dbSchema.join('\n'))
+}
+
+dbConnection()
+createBotReportTable()
+
 app.use(express.json());
 app.use(cors({ origin: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', router);
 
-runAllCronJobs();
 
 const credentialsFactory = new ConfigurationServiceClientCredentialFactory({
     MicrosoftAppId: process.env.MicrosoftAppId,
@@ -72,8 +96,11 @@ app.on('upgrade', async (req, socket, head) => {
 
     await streamingAdapter.process(req, socket, head, (context) => myBot.run(context));
 });
+
 app.listen(process.env.port || process.env.PORT || 3978, async () => {
     console.log(`\n${ app.name } listening to ${ app.url }`);
     console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
     console.log('\nTo talk to your bot, open the emulator select "Open Bot"');
 });
+
+runAllCronJobs();

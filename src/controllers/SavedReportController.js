@@ -1,96 +1,59 @@
-const { query, runCronJobByFileName } = require('../services/db');
+const { SQLquery, runCronJobByFileName } = require('../services/dbConnect');
 const { deleteFileFromContainer } = require('./DownloadController');
-const { AllColumns } = require('./TableDataController');
-const { v4: uuidv4 } = require('uuid');
-
-const checkTableExists = async (tableName) => {
-    const sql = `PRAGMA table_info(${ tableName })`;
-    try {
-        const result = await query(sql);
-        return result.length > 0;
-    } catch (err) {
-        console.error('Error checking table existence:', err);
-        return false;
-    }
-};
-
-const inferColumnType = (value) => {
-    if (typeof value === 'string') {
-        return 'TEXT';
-    } else if (typeof value === 'number') {
-        return 'INTEGER';
-    } else if (typeof value === 'boolean') {
-        return 'BOOLEAN';
-    } else if (typeof value === 'object' && value !== null) {
-        return 'TEXT';
-    } else {
-        return 'TEXT';
-    }
-};
 
 const insertValues = async (tableName, values) => {
-    const columns = Object.keys(values).map(col => `\`${ col }\``).join(', ');
-    const placeholders = Object.keys(values).map(() => '?').join(', ');
-    const sql = `INSERT INTO ${ tableName } (${ columns }) VALUES (${ placeholders })`;
+    const columns = Object.keys(values).join(', ');
+    const paramNames = Object.keys(values).map((key, index) => `@param${index}`).join(', ');
 
-    // Serialize the reportMetadata object before inserting
-    if (values.reportMetadata) {
-        values.reportMetadata = JSON.stringify(values.reportMetadata);
-    }
+    const sql = `INSERT INTO ${tableName} (${columns}) VALUES (${paramNames})`;
 
     try {
-        const response = await query(sql, Object.values(values));
-        return response;
+        const insertedValue = await SQLquery(sql, values);
+        console.log("insertedValue----", insertedValue);
+        
+        const savedReportData = await SQLquery('SELECT * FROM config.botreportsData WHERE isDeleted = 0 ORDER BY createdAt DESC;');
+        
+        return savedReportData[0];
     } catch (err) {
+        console.error("Insert Error:", err);
         return null;
     }
 };
 
 const updateValues = async (tableName, values, id) => {
-    const columns = Object.keys(values).map(col => `\`${ col }\` = ?`).join(', ');
 
-    const sql = `UPDATE ${ tableName } SET ${ columns } WHERE Id = ?`;
+    const filteredValues = Object.fromEntries(
+        Object.entries(values).filter(([key]) => key.toLowerCase() !== 'id')
+    );
 
-    const queryParams = [...Object.values(values), id];
-
-    try {
-        return await query(sql, queryParams);
-    } catch (err) {
-        return null;
-    }
-};
-
-const createTable = async (tableName, columns) => {
-    const columnsDefinition = Object.entries(columns)
-        .map(([colName, colValue]) => `\`${ colName }\` ${ inferColumnType(colValue) }`)
+    const columns = Object.keys(filteredValues)
+        .map((key, index) => `${key} = @param${index}`)
         .join(', ');
 
-    const sql = `CREATE TABLE ${ tableName } (${ columnsDefinition })`;
+    const sql = `UPDATE ${tableName} SET ${columns} WHERE ID = @param${Object.keys(filteredValues).length}`;
+
+    const queryParams = Object.values(filteredValues).reduce((acc, value, index) => {
+        acc[`@param${index}`] = value;
+        return acc;
+    }, {});
+
+    queryParams[`@param${Object.keys(filteredValues).length}`] = id;
 
     try {
-        await query(sql);
-        return await insertValues(tableName, columns);
+        return await SQLquery(sql, queryParams);
     } catch (err) {
-        console.error('Error creating table:', err);
+        console.error("SQL Update Error:", err);
+        return null;
     }
 };
 
 const getSavedReportController = async (req, res) => {
     try {
-        const tableExists = await checkTableExists('savedReports');
-
-        if (tableExists) {
-            const savedReportData = await query('SELECT * FROM savedReports WHERE isDeleted = 0 ORDER BY createdAt DESC');
-            if (savedReportData) {
-                res.status(200).json({ data: savedReportData, message: 'Report Generated Successfully.' });
-            } else {
-                res.status(200).json({ data: [], message: 'Report Not Found' });
-            }
+        const savedReportData = await SQLquery('SELECT * FROM config.botreportsData WHERE isDeleted = 0 ORDER BY createdAt DESC;');
+        if (savedReportData) {
+            res.status(200).json({ data: savedReportData, message: 'Getting Report Data Successfully.' });
         } else {
-            res.status(200).json({
-                data: [],
-                message: 'Table Not Exist.'
-            });
+            res.status(200).json({ data: [], message: 'Report Not Found' });
         }
     } catch (error) {
         res.status(500).send(error.message);
@@ -100,30 +63,26 @@ const getSavedReportController = async (req, res) => {
 const deleteSavedReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
-        const tableName = 'savedReports';
+        const tableName = 'config.botreportsData';
 
-        const existingRecord = await query('SELECT * FROM savedReports WHERE Id = ?', [Id]);
+        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE ID = ${Id}`);
 
         if (!existingRecord || existingRecord.length === 0) {
             return res.status(404).json({ message: 'Record not found' });
         }
 
-        let reportMetadata = existingRecord[0]?.reportMetadata
-            ? JSON.parse(existingRecord[0].reportMetadata)
-            : {};
+        let reportMetadata = existingRecord[0]
 
         if(reportMetadata.downloadFile) {
-            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }/reports/`)[1])
+            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${process.env.STORAGE_BASE_URL}/reports/`)[1])
         }
+
         // Flatten the values to match the columns in the database
         const flattenedValues = {
-            isDeleted: true,
-            reportMetadata: {...reportMetadata, downloadFile: null}
+            ...reportMetadata,
+            isDeleted: 1,
+            downloadFile: null
         };
-
-        if (flattenedValues.reportMetadata) {
-            flattenedValues.reportMetadata = JSON.stringify(flattenedValues.reportMetadata);
-        }
 
         await updateValues(tableName, flattenedValues, Id);
 
@@ -136,20 +95,14 @@ const deleteSavedReportController = async (req, res) => {
 const getSingleSavedReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
-        const tableExists = await checkTableExists('savedReports');
 
-        if (tableExists) {
-            const singleData = await query('SELECT * FROM savedReports WHERE Id = ?', [Id]);
-            if (singleData) {
-                res.status(200).json({ data: singleData });
-            } else {
-                res.status(200).json({ data: [], message: 'Report Not Found' });
-            }
+        const singleData = await SQLquery(`SELECT * FROM config.botreportsData WHERE ID = ${Id}`);
+        if (singleData) {
+            res.status(200).json({ data: singleData });
         } else {
-            res.status(200).json({
-                message: 'Table Not Exist.'
-            });
+            res.status(200).json({ data: [], message: 'Report Not Found' });
         }
+
     } catch (error) {
         res.status(500).send(error.message);
     }
@@ -158,31 +111,21 @@ const getSingleSavedReportController = async (req, res) => {
 const saveConfirmtionSavedReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
-        const tableExists = await checkTableExists('savedReports');
+        const tableName = 'config.botreportsData';
+        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE ID = ${Id}`);
 
-        if (tableExists) {
-            const existingRecord = await query('SELECT * FROM savedReports WHERE Id = ?', [Id]);
-
-            if (!existingRecord || existingRecord.length === 0) {
-                return res.status(404).json({ message: 'Record not found' });
-            }
-
-            const reportMetadata = existingRecord[0]?.reportMetadata
-                ? JSON.parse(existingRecord[0].reportMetadata)
-                : {};
-
-            reportMetadata.isConfirm = true;
-
-            const flattenedValues = {
-                reportMetadata: JSON.stringify(reportMetadata)
-            };
-            await updateValues('savedReports', flattenedValues, Id);
-            res.status(200).json({ message: 'Set email confirmation' });
-        } else {
-            res.status(200).json({
-                message: 'Table Not Exist.'
-            });
+        if (!existingRecord || existingRecord.length === 0) {
+            return res.status(404).json({ message: 'Record not found' });
         }
+
+        const reportMetadata = existingRecord[0]
+
+        reportMetadata.isConfirm = 1;
+
+        const flattenedValues = reportMetadata
+        await updateValues(tableName, flattenedValues, Id);
+        res.status(200).json({ message: 'Set email confirmation' });
+
     } catch (error) {
         res.status(500).send(error.message);
     }
@@ -191,41 +134,28 @@ const saveConfirmtionSavedReportController = async (req, res) => {
 const savedReportController = async (req, res) => {
     try {
         const { fileName, reportType, period, Currency, Business, field, type, scheduler, emailLists, downloadFile, sqlQuery } = req.body;
-        const defaultColumn = await AllColumns(reportType?.split(','));
-        const tableName = 'savedReports';
+        const tableName = 'config.botreportsData';
 
         const flattenedValues = {
-            Id: uuidv4(),
-            reportName: fileName,
+            reportName: fileName || "",
             userEmail: 'test@gmail.com',
-            createdAt: new Date(),
-            isDeleted: false,
-            reportMetadata: {
-                tables: reportType,
-                startDate: period ? period?.startDate : null,
-                endDate: period ? period?.endDate : null,
-                classOfBusiness: Business || null,
-                originalCurrencyCode: Currency || null,
-                field: field,
-                scheduler: scheduler,
-                emailLists: emailLists || null,
-                isConfirm: false,
-                downloadType: type,
-                downloadFile: downloadFile || null,
-                sqlQuery: sqlQuery,
-                defaultColumns: defaultColumn
-            }
-        };
-
-        const tableExists = await checkTableExists(tableName);
-
-        if (!tableExists) {
-            await createTable(tableName, flattenedValues);
-        } else {
-            await insertValues(tableName, flattenedValues);
+            isDeleted: 0,
+            table_list: reportType || "",
+            startDate: period?.startDate ? period.startDate : null,
+            endDate: period?.endDate ? period.endDate : null,
+            classOfBusiness: Business || "",
+            originalCurrencyCode: Currency || "",
+            field: field || "",
+            scheduler: scheduler || "",
+            emailLists: emailLists || "",
+            isConfirm: 0,
+            downloadType: type || "",
+            downloadFile: downloadFile || "",
+            sqlQuery: sqlQuery || ""
         }
+        const insertedValue = await insertValues(tableName, flattenedValues);
 
-        res.status(200).json({ data: flattenedValues, message: 'Report Saved Successfully' });
+        res.status(200).json({ data: insertedValue, message: 'Report Saved Successfully' });
     } catch (error) {
         res.status(500).send(error.message);
     }
@@ -235,25 +165,25 @@ const editReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
         const { reportType, period, Currency, Business, field, type, scheduler, emailLists, downloadFile, sqlQuery } = req.body;
-        const defaultColumn = await AllColumns(reportType?.split(','));
-        const tableName = 'savedReports';
 
-        const existingRecord = await query('SELECT * FROM savedReports WHERE Id = ?', [Id]);
+        const tableName = 'config.botreportsData';
+
+        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE ID = ${Id}`);
 
         if (!existingRecord || existingRecord.length === 0) {
             return res.status(404).json({ message: 'Record not found' });
         }
 
-        let reportMetadata = existingRecord[0]?.reportMetadata
-            ? JSON.parse(existingRecord[0].reportMetadata)
-            : {};
+        let reportMetadata = existingRecord[0]
 
         if (reportMetadata.downloadFile && downloadFile && reportMetadata.downloadFile !== downloadFile) {
-            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${ process.env.STORAGE_BASE_URL }/reports/`)[1])
+            await deleteFileFromContainer(reportMetadata.downloadFile.split(`${process.env.STORAGE_BASE_URL}/reports/`)[1])
         }
-        reportMetadata = {
-            ...reportMetadata,
-            tables: reportType || reportMetadata.tables,
+
+        const flattenedValues = {
+            userEmail: 'test@gmail.com',
+            isDeleted: 0,
+            table_list: reportType || reportMetadata.table_list,
             startDate: period?.startDate || reportMetadata.startDate || null,
             endDate: period?.endDate || reportMetadata.endDate || null,
             classOfBusiness: Business || reportMetadata.classOfBusiness || null,
@@ -261,23 +191,10 @@ const editReportController = async (req, res) => {
             field: field || reportMetadata.field,
             scheduler: scheduler || reportMetadata.scheduler,
             emailLists: emailLists || reportMetadata.emailLists || null,
+            isConfirm: 0,
             downloadType: type || reportMetadata.downloadType,
             downloadFile: downloadFile || reportMetadata.downloadFile || null,
             sqlQuery: sqlQuery || reportMetadata.sqlQuery,
-            defaultColumns: defaultColumn || reportMetadata.defaultColumns
-        };
-
-        // Flatten the values to match the columns in the database
-        const flattenedValues = {
-            userEmail: 'test@gmail.com',
-            createdAt: new Date(),
-            isDeleted: false,
-            reportMetadata: reportMetadata
-        };
-
-        // Serialize the reportMetadata object to store it as a JSON string
-        if (flattenedValues.reportMetadata) {
-            flattenedValues.reportMetadata = JSON.stringify(flattenedValues.reportMetadata);
         }
 
         await updateValues(tableName, flattenedValues, Id);

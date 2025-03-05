@@ -1,7 +1,5 @@
 const { AzureOpenAI } = require('openai');
-const sqlite3 = require("sqlite3");
 const { SQLquery } = require('../services/dbConnect');
-// const { query } = require('../services/db');
 
 // Azure OpenAI Configuration
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
@@ -15,41 +13,6 @@ const client = new AzureOpenAI({
   deployment: modelDeployment,
 });
 
-let pool = null;
-
-// Function to connect to the database
-async function connectToDatabase() {
-  try {
-    pool = await sql.connect(dbConfig);
-    console.log('Connected to database successfully.');
-  } catch (error) {
-    console.error('Error connecting to database:', error.message);
-    throw new Error('Database connection failed.');
-  }
-}
-
-
-const db = new sqlite3.Database('rawData.db', (err) => {
-  if (err) {
-    console.log('Error Occurred - ' + err.message);
-  } else {
-    console.log('Database Connected');
-  }
-});
-
-
-const query = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(rows);
-    });
-  });
-};
-
 
 // Function to fetch database schema
 async function getDatabaseInfo() {
@@ -59,21 +22,22 @@ async function getDatabaseInfo() {
     //   FROM INFORMATION_SCHEMA.TABLES 
     //   WHERE TABLE_TYPE = 'BASE TABLE'
     // `);
-    const tableResult = await SQLquery(`SELECT TABLE_NAME AS name, 'table' AS type FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_CATALOG = DB_NAME();`)
-//     const tableResult = await SQLquery(`
-//       SELECT 
-//     COLUMN_NAME, 
-//     DATA_TYPE, 
-//     IS_NULLABLE, 
-//     COLUMN_DEFAULT, 
-//     CHARACTER_MAXIMUM_LENGTH, 
-//     NUMERIC_PRECISION, 
-//     NUMERIC_SCALE
-// FROM INFORMATION_SCHEMA.COLUMNS
-// WHERE TABLE_CATALOG = DB_NAME()
-//   `);
-    // const tableResult = await query('SELECT * FROM sqlite_master WHERE type="table"')
-
+    const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fact_premium', 'dim_claims') and TABLE_SCHEMA='dwh'`);
+    
+    const data= result ?? [];
+    
+    const tables = data?.reduce((acc, cur) => {
+        const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
+        if(acc?.[tableName]) {
+            acc[tableName] = [...acc[tableName], `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
+        } else {
+            acc[tableName] = [ `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
+        }
+        return acc;
+    }, {})
+    
+    const tableResult = Object.entries(tables)?.map(table => `create table ${table[0]} (${table[1].join(', ')})`);
+  
     return tableResult;
   } catch (error) {
     console.error('Error fetching database info:', error.message);
@@ -83,23 +47,13 @@ async function getDatabaseInfo() {
 
 // Function to format schema info
 function formatDatabaseSchemaInfo(schemaDict) {
-  console.log("schemaDict----", schemaDict);
-  
-
-  return schemaDict
-    .map(
-      (table) =>
-        `${table.sql}`
-    )
-    .join('\n');
+  return schemaDict.join('\n');
 }
 
 // Function to execute queries on the database
 async function askDatabase(sqlquery) {
-  // console.log("Sql Query:", sqlquery)
   try {
-    const result = await query(sqlquery);
-    // console.log(result)
+    const result = await SQLquery(sqlquery);
     return result;
   } catch (error) {
     return `Query failed with error: ${error.message}`;
@@ -108,7 +62,6 @@ async function askDatabase(sqlquery) {
 
 const generateSQl = async (userMessage) => {
   try {
-
     const schemaDict = await getDatabaseInfo();
     const schemaString = formatDatabaseSchemaInfo(schemaDict);
 
@@ -148,7 +101,6 @@ const generateSQl = async (userMessage) => {
     if (queryCall) {
       const arguments = JSON.parse(queryCall.function.arguments);
       const sqlQuery = arguments.query
-      console.log("sqlQuery-----******", sqlQuery)
 
       return sqlQuery;
     }

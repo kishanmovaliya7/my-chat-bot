@@ -127,7 +127,6 @@ async function mailerFunction(iterator) {
   } and return only this ${report.Field}`;
 
   const sqlQuery = await generateSQl(userMessage);
-  console.log("sqlQuery**:-", sqlQuery);
   const policyData = await query(sqlQuery);
 
   let bufferData;

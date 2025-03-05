@@ -157,7 +157,7 @@
 
 
 const { AzureOpenAI } = require("openai");
-const { query } = require("../services/db");
+const { SQLquery } = require("../services/dbConnect");
 
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
 const apiKey = process.env.AZURE_OPENAI_API_KEY; // Use API Key or Token Provider
@@ -176,25 +176,43 @@ const conversationHistory = new Map();
 // Function to fetch database schema
 async function getDatabaseInfo() {
   try {
-    const tableResult = await query(
-      'SELECT * FROM sqlite_master WHERE type="table"'
-    );
+    // const tableResult = await SQLquery(`
+    //   SELECT TABLE_NAME 
+    //   FROM INFORMATION_SCHEMA.TABLES 
+    //   WHERE TABLE_TYPE = 'BASE TABLE'
+    // `);
+    const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fact_premium', 'dim_claims') and TABLE_SCHEMA='dwh'`);
+    
+    const data= result ?? [];
+    
+    const tables = data?.reduce((acc, cur) => {
+        const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
+        if(acc?.[tableName]) {
+            acc[tableName] = [...acc[tableName], `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
+        } else {
+            acc[tableName] = [ `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
+        }
+        return acc;
+    }, {})
+    
+    const tableResult = Object.entries(tables)?.map(table => `create table ${table[0]} (${table[1].join(', ')})`);
+  
     return tableResult;
   } catch (error) {
-    console.error("Error fetching database info:", error.message);
-    throw new Error("Failed to retrieve database schema.");
+    console.error('Error fetching database info:', error.message);
+    throw new Error('Failed to retrieve database schema.');
   }
 }
 
 // Function to format schema info
 function formatDatabaseSchemaInfo(schemaDict) {
-  return schemaDict.map((table) => `${table.sql}`).join("\n");
+  return schemaDict.join('\n');
 }
 
 // Function to execute queries on the database
 async function askDatabase(sqlquery) {
   try {
-    const result = await query(sqlquery);
+    const result = await SQLquery(sqlquery);
     return result;
   } catch (error) {
     return `Query failed with error: ${error.message}`;
@@ -225,7 +243,7 @@ const generateSQL = async (conversation) => {
                 query: {
                   type: "string",
                   description: `
-                        SQLite query extracting info to answer the user's question.
+                        SQL query extracting info to answer the user's question.
                         SQL should be written using this database schema:
                         ${schemaString}
                           The query should be returned in plain text, not in JSON

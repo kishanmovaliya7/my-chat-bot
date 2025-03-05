@@ -28,7 +28,7 @@ const getTableListController = async (req, res) => {
         const tableNames = tables.map(row => `${row.TABLE_SCHEMA}.${row.TABLE_NAME}`);
 
         if (tableNames.length > 0) {
-            res.status(200).json({ tableNames });
+            res.status(200).json({data:tableNames });
         } else {
             res.status(200).json([] );
         }
@@ -39,7 +39,7 @@ const getTableListController = async (req, res) => {
 
 const getBusinessValue = async (req, res) => {
     try {
-        const businessColumnValues = await SQLquery('SELECT DISTINCT business_class_name FROM dwh.dim_business_class');
+        const businessColumnValues = await SQLquery('SELECT DISTINCT business_class_name FROM dwh.dim_business_class WHERE business_class_name IS NOT NULL');
         const classOfBusinessArray = businessColumnValues.map(row => row.business_class_name);
 
         if (classOfBusinessArray) {
@@ -54,7 +54,7 @@ const getBusinessValue = async (req, res) => {
 
 const getCurrencyValue = async (req, res) => {
     try {
-        const originalCurrencyCodeValues = await SQLquery('SELECT DISTINCT currency_code FROM dwh.dim_agreement');
+        const originalCurrencyCodeValues = await SQLquery('SELECT DISTINCT currency_code FROM dwh.dim_agreement WHERE currency_code IS NOT NULL');
         const originalCurrencyCodeArray = originalCurrencyCodeValues.map(row => row.currency_code);
 
         if (originalCurrencyCodeArray) {
