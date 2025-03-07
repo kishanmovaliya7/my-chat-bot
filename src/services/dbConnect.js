@@ -60,10 +60,10 @@ const getPool = async () => {
 
 const SQLquery = async (queryString, params = {}) => {
     try {
-        // const pool = await poolPromise;
+        const pool = await poolPromise;
         // const request = pool.request();
 
-        const pool = await getPool();
+        // const pool = await getPool();
         if (!pool) throw new Error('Database connection not available');
 
         const request = pool.request();

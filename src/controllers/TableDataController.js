@@ -26,7 +26,7 @@ const getTableListController = async (req, res) => {
 
         // const tables = await SQLquery(queryString);
         // const tableNames = tables.map(row => `${row.TABLE_SCHEMA}.${row.TABLE_NAME}`);
-        const tableNames = [{label: 'Policy', value: "dwh.dim_policy"}, {label:"Claims", value: "dwh.dim_claims"},{label: "Premium", value: "dwh.fact_premium"}];
+        const tableNames = [{ label: 'Policy', value: "dwh.dim_policy" }, { label: "Claims", value: "dwh.dim_claims" }, { label: "Premium", value: "dwh.fact_premium" }];
 
         if (tableNames.length > 0) {
             res.status(200).json({data:tableNames });
@@ -74,9 +74,33 @@ const AllColumns = async (listOfTables) => {
         for (const table of listOfTables) {
             const tableSchema = table.split(".")[0]
             const tableName = table.split(".")[1]
-            const rawDetails = await SQLquery(`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '${tableSchema}' AND TABLE_NAME = '${tableName}';`);
+            const tableMapping = {
+                "dwh.dim_policy": ["fct_policy", "dim_policy"],
+                "dwh.dim_claims": ["fact_claims_dtl", "dim_claims"],
+                "dwh.fact_premium": ["fact_premium"]
+            };
+            const tablesToQuery = tableMapping[table] || [tableName]
+            const rawDetails = await SQLquery(`SELECT COLUMN_NAME, MIN(TABLE_NAME) AS TABLE_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = '${tableSchema}'
+                AND TABLE_NAME IN (${tablesToQuery.map(t => `'${t}'`).join(",")})
+                AND COLUMN_NAME != 'dw_ins_upd_dt'
+                GROUP BY COLUMN_NAME;`)
             
-            columnNames = [...columnNames, ...rawDetails.map(column => `${ table }.'${ column.COLUMN_NAME }'`)];
+            columnNames = [...columnNames, ...rawDetails.map(column => `${column.TABLE_NAME}.'${column.COLUMN_NAME}'`)];
+
+            // const uniqueColumns = new Set();
+            // const formattedColumns = rawDetails
+            //     .filter(column => {
+            //         if (uniqueColumns.has(column.COLUMN_NAME)) {
+            //             return false;
+            //         }
+            //         uniqueColumns.add(column.COLUMN_NAME);
+            //         return true;
+            //     })
+            //     .map(column => `${column.TABLE_NAME}.'${column.COLUMN_NAME}'`);
+
+            // columnNames = [...columnNames, ...formattedColumns];
         }
     }
     return columnNames;

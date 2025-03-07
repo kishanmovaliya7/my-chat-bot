@@ -4,7 +4,6 @@ const cors = require('cors');
 
 const dotenv = require('dotenv');
 const ENV_FILE = path.join(__dirname, '.env');
-const fs = require('fs');
 dotenv.config({ path: ENV_FILE });
 
 // const restify = require('restify');
@@ -24,28 +23,6 @@ const { poolPromise, runAllCronJobs, createBotReportTable } = require('./src/ser
 // const server = restify.createServer();
 // server.use(restify.plugins.bodyParser());
 
-const dbConnection = async () => {
-    const connection = await poolPromise;
-    // const request = connection.request();
-
-    // const result = await request.query(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('fact_policy_dtl', 'fact_premium', 'fact_claims_dtl') and TABLE_SCHEMA='dwh'`);
-    
-    // const data= result.recordset;
-    // const tables = data.reduce((acc, cur) => {
-    //     const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
-    //     if(acc?.[tableName]) {
-    //         acc[tableName] = [...acc[tableName], `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
-    //     } else {
-    //         acc[tableName] = [ `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
-    //     }
-    //     return acc;
-    // }, {})
-    
-    // const dbSchema = Object.entries(tables)?.map(table => `create table ${table[0]} (${table[1].join(', ')})`);
-    // // console.log(dbSchema.join('\n'))
-}
-
-dbConnection()
 createBotReportTable()
 
 app.use(express.json());

@@ -8,9 +8,7 @@ const insertValues = async (tableName, values) => {
     const sql = `INSERT INTO ${tableName} (${columns}) VALUES (${paramNames})`;
 
     try {
-        const insertedValue = await SQLquery(sql, values);
-        console.log("insertedValue----", insertedValue);
-        
+        await SQLquery(sql, values);
         const savedReportData = await SQLquery('SELECT * FROM config.botreportsData WHERE isDeleted = 0 ORDER BY createdAt DESC;');
         
         return savedReportData[0];
@@ -30,7 +28,7 @@ const updateValues = async (tableName, values, id) => {
         .map((key, index) => `${key} = @param${index}`)
         .join(', ');
 
-    const sql = `UPDATE ${tableName} SET ${columns} WHERE ID = @param${Object.keys(filteredValues).length}`;
+    const sql = `UPDATE ${tableName} SET ${columns} WHERE Id = @param${Object.keys(filteredValues).length}`;
 
     const queryParams = Object.values(filteredValues).reduce((acc, value, index) => {
         acc[`@param${index}`] = value;
@@ -65,7 +63,7 @@ const deleteSavedReportController = async (req, res) => {
         const Id = req?.params?.id;
         const tableName = 'config.botreportsData';
 
-        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE ID = ${Id}`);
+        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE Id = ${Id}`);
 
         if (!existingRecord || existingRecord.length === 0) {
             return res.status(404).json({ message: 'Record not found' });
@@ -96,7 +94,7 @@ const getSingleSavedReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
 
-        const singleData = await SQLquery(`SELECT * FROM config.botreportsData WHERE ID = ${Id}`);
+        const singleData = await SQLquery(`SELECT * FROM config.botreportsData WHERE Id = ${Id}`);
         if (singleData) {
             res.status(200).json({ data: singleData });
         } else {
@@ -112,7 +110,7 @@ const saveConfirmtionSavedReportController = async (req, res) => {
     try {
         const Id = req?.params?.id;
         const tableName = 'config.botreportsData';
-        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE ID = ${Id}`);
+        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE Id = ${Id}`);
 
         if (!existingRecord || existingRecord.length === 0) {
             return res.status(404).json({ message: 'Record not found' });
@@ -168,7 +166,7 @@ const editReportController = async (req, res) => {
 
         const tableName = 'config.botreportsData';
 
-        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE ID = ${Id}`);
+        const existingRecord = await SQLquery(`SELECT * FROM config.botreportsData WHERE Id = ${Id}`);
 
         if (!existingRecord || existingRecord.length === 0) {
             return res.status(404).json({ message: 'Record not found' });
@@ -180,21 +178,38 @@ const editReportController = async (req, res) => {
             await deleteFileFromContainer(reportMetadata.downloadFile.split(`${process.env.STORAGE_BASE_URL}/reports/`)[1])
         }
 
+        // const flattenedValues = {
+        //     userEmail: 'test@gmail.com',
+        //     isDeleted: 0,
+        //     table_list: reportType || reportMetadata.table_list,
+        //     startDate: period?.startDate || reportMetadata.startDate || null,
+        //     endDate: period?.endDate || reportMetadata.endDate || null,
+        //     classOfBusiness: Business || reportMetadata.classOfBusiness || null,
+        //     originalCurrencyCode: Currency || reportMetadata.originalCurrencyCode || null,
+        //     field: field || reportMetadata.field,
+        //     scheduler: scheduler || reportMetadata.scheduler,
+        //     emailLists: emailLists || reportMetadata.emailLists || null,
+        //     isConfirm: 0,
+        //     downloadType: type || reportMetadata.downloadType,
+        //     downloadFile: downloadFile || reportMetadata.downloadFile || null,
+        //     sqlQuery: sqlQuery || reportMetadata.sqlQuery,
+        // }
+
         const flattenedValues = {
             userEmail: 'test@gmail.com',
-            isDeleted: 0,
-            table_list: reportType || reportMetadata.table_list,
-            startDate: period?.startDate || reportMetadata.startDate || null,
-            endDate: period?.endDate || reportMetadata.endDate || null,
-            classOfBusiness: Business || reportMetadata.classOfBusiness || null,
-            originalCurrencyCode: Currency || reportMetadata.originalCurrencyCode || null,
-            field: field || reportMetadata.field,
-            scheduler: scheduler || reportMetadata.scheduler,
-            emailLists: emailLists || reportMetadata.emailLists || null,
-            isConfirm: 0,
-            downloadType: type || reportMetadata.downloadType,
-            downloadFile: downloadFile || reportMetadata.downloadFile || null,
-            sqlQuery: sqlQuery || reportMetadata.sqlQuery,
+            isDeleted: 0 || reportMetadata.isDeleted,
+            table_list: reportType,
+            startDate: period?.startDate || null,
+            endDate: period?.endDate || null,
+            classOfBusiness: Business || null,
+            originalCurrencyCode: Currency || null,
+            field: field,
+            scheduler: scheduler,
+            emailLists: emailLists || null,
+            isConfirm: 0 || reportMetadata.isConfirm,
+            downloadType: type,
+            downloadFile: downloadFile || null,
+            sqlQuery: sqlQuery,
         }
 
         await updateValues(tableName, flattenedValues, Id);

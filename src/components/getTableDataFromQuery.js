@@ -23,21 +23,21 @@ async function getDatabaseInfo() {
     //   WHERE TABLE_TYPE = 'BASE TABLE'
     // `);
     const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fact_premium', 'dim_claims') and TABLE_SCHEMA='dwh'`);
-    
+
     const data= result ?? [];
-    
+
     const tables = data?.reduce((acc, cur) => {
-        const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
+      const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
         if(acc?.[tableName]) {
             acc[tableName] = [...acc[tableName], `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
-        } else {
+      } else {
             acc[tableName] = [ `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
-        }
-        return acc;
+      }
+      return acc;
     }, {})
-    
+
     const tableResult = Object.entries(tables)?.map(table => `create table ${table[0]} (${table[1].join(', ')})`);
-  
+
     return tableResult;
   } catch (error) {
     console.error('Error fetching database info:', error.message);
