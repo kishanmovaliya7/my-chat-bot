@@ -47,7 +47,7 @@ const updateValues = async (tableName, values, id) => {
 
 const getSavedReportController = async (req, res) => {
     try {
-        const savedReportData = await SQLquery('SELECT * FROM config.botreportsData WHERE isDeleted = 0 ORDER BY createdAt DESC;');
+        const savedReportData = await SQLquery('SELECT * FROM config.botreportsData WHERE isDeleted = 0 ORDER BY updatedAt DESC;');
         if (savedReportData) {
             res.status(200).json({ data: savedReportData, message: 'Getting Report Data Successfully.' });
         } else {

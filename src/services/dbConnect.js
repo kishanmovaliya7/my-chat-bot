@@ -31,7 +31,7 @@ const config = {
     }
 };
 
-const poolPromise = new sql.ConnectionPool(config)
+const poolPromise = new sql.ConnectionPool(process.env.DB_CONNECTION_STRING)
     .connect()
     .then(pool => {
         console.log("Connected to MSSQL with Pooling");
@@ -47,7 +47,7 @@ let poolConnectionPromise;
 const getPool = async () => {
     if (!poolConnectionPromise) {
         try {
-            poolConnectionPromise = new sql.ConnectionPool(config);
+            poolConnectionPromise = new sql.ConnectionPool(process.env.DB_CONNECTION_STRING);
             await poolConnectionPromise.connect();
             console.log('✅ Database connected successfully');
         } catch (error) {
