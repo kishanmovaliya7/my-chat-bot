@@ -235,7 +235,7 @@ const runAllCronJobs = async () => {
                     };
 
                     console.log('schedule email sending started----', process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL);
-                    await axios.post(`${process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL}/api/send-email?code=${process.env.AZURE_CHATBOT_SCHEDULER_FUNCTION_KEY}`, data);
+                    await axios.post(`${process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL}/api/send-email?`, data);
                 },
                 { name: `Schedule-${iterator?.reportName}`, timezone: 'America/New_York' }
             );
@@ -285,7 +285,7 @@ const runCronJobByFileName = async (filename) => {
                     };
 
                     console.log('schedule email sending started----');
-                    await axios.post(`${process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL}/api/send-email`, data);
+                    await axios.post(`${process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL}/api/send-email?`, data);
                 },
                 { name: `Schedule-${reportMetadata?.reportName}`, timezone: "America/New_York" }
             );
