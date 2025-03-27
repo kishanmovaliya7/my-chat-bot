@@ -31,9 +31,10 @@ const config = {
     }
 };
 
-const poolPromise = new sql.ConnectionPool(process.env.DB_CONNECTION_STRING)
+const poolPromise = new sql.ConnectionPool(config)
     .connect()
     .then(pool => {
+        // console.log( "process.env.DB_USER--", process.env.DB_USER, "process.env.DB_PASSWORD--", process.env.DB_PASSWORD, "process.env.DB_SERVER--", process.env.DB_SERVER, "process.env.DB_DATABASE--", process.env.DB_DATABASE);
         console.log("Connected to MSSQL with Pooling");
         return pool;
     })
@@ -119,7 +120,7 @@ const createBotReportTable = async (tableName = 'botreportsData') => {
 // Function to fetch database schema
 async function getDatabaseInfo() {
     try {
-        const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fact_premium', 'dim_claims') and TABLE_SCHEMA='dwh'`);
+        const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fct_policy', 'fact_premium', 'dim_claims', 'fact_claims_dtl') and TABLE_SCHEMA='dwh'`);
 
         const data = result ?? [];
 

@@ -17,7 +17,7 @@ const {
 
 const { EchoBot } = require('./bot');
 const { router } = require('./src/routes');
-const { poolPromise, runAllCronJobs, createBotReportTable } = require('./src/services/dbConnect');
+const { runAllCronJobs, createBotReportTable } = require('./src/services/dbConnect');
 
 // Create HTTP server
 // const server = restify.createServer();

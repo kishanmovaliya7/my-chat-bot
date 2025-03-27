@@ -1,4 +1,3 @@
-const { query } = require('../services/db');
 const { SQLquery } = require('../services/dbConnect');
 
 // const getTableListController = async (req, res) => {

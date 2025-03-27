@@ -124,7 +124,7 @@
 //       if (ans.toLowerCase() === "no") {
 //         const sqlQuery = await generateSQl(userMessage);
 //         console.log("sqlQuery----",sqlQuery);
-        
+
 //         if (sqlQuery) {
 //           const result = await askDatabase(sqlQuery);
 //           const completionResponse = await client.chat.completions.create({
@@ -155,7 +155,6 @@
 
 // module.exports = { getQuestionsController };
 
-
 const { AzureOpenAI } = require("openai");
 const { SQLquery } = require("../services/dbConnect");
 
@@ -177,36 +176,47 @@ const conversationHistory = new Map();
 async function getDatabaseInfo() {
   try {
     // const tableResult = await SQLquery(`
-    //   SELECT TABLE_NAME 
-    //   FROM INFORMATION_SCHEMA.TABLES 
+    //   SELECT TABLE_NAME
+    //   FROM INFORMATION_SCHEMA.TABLES
     //   WHERE TABLE_TYPE = 'BASE TABLE'
     // `);
-    const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fact_premium', 'dim_claims') and TABLE_SCHEMA='dwh'`);
-    
-    const data= result ?? [];
-    
+    const result = await SQLquery(
+      `SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fct_policy', 'fact_premium', 'dim_claims', 'fact_claims_dtl') and TABLE_SCHEMA='dwh'`
+    );
+
+    const data = result ?? [];
+
     const tables = data?.reduce((acc, cur) => {
-        const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
-        if(acc?.[tableName]) {
-            acc[tableName] = [...acc[tableName], `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
-        } else {
-            acc[tableName] = [ `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
-        }
-        return acc;
-    }, {})
-    
-    const tableResult = Object.entries(tables)?.map(table => `create table ${table[0]} (${table[1].join(', ')})`);
-  
+      const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`;
+      if (acc?.[tableName]) {
+        acc[tableName] = [
+          ...acc[tableName],
+          `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === "varchar" ? "(MAX)" : ""
+          }`,
+        ];
+      } else {
+        acc[tableName] = [
+          `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === "varchar" ? "(MAX)" : ""
+          }`,
+        ];
+      }
+      return acc;
+    }, {});
+
+    const tableResult = Object.entries(tables)?.map(
+      (table) => `create table ${table[0]} (${table[1].join(", ")})`
+    );
+
     return tableResult;
   } catch (error) {
-    console.error('Error fetching database info:', error.message);
-    throw new Error('Failed to retrieve database schema.');
+    console.error("Error fetching database info:", error.message);
+    throw new Error("Failed to retrieve database schema.");
   }
 }
 
 // Function to format schema info
 function formatDatabaseSchemaInfo(schemaDict) {
-  return schemaDict.join('\n');
+  return schemaDict.join("\n");
 }
 
 // Function to execute queries on the database
@@ -242,12 +252,22 @@ const generateSQL = async (conversation) => {
               properties: {
                 query: {
                   type: "string",
-                  description: `
-                        SQL query extracting info to answer the user's question.
-                        SQL should be written using this database schema:
-                        ${schemaString}
-                          The query should be returned in plain text, not in JSON
-                        `,
+                  // description: `
+                  //       SQL query extracting info to answer the user's question.
+                  //       SQL should be written using this database schema:
+                  //       ${schemaString}
+                  //         The query should be returned in plain text, not in JSON
+                  //       `,
+
+                  description: `SQL query extracting info to answer the user's question.
+                    Generate an SQL query to return categorical data and their corresponding counts, suitable for a chart.
+                    The query should include:
+                    - A categorical column (preferably country_code instead of country)
+                    - A numerical count
+                    SQL should be written using this database schema:
+                    ${schemaString}
+                    The query should be returned in plain text, not in JSON.
+                  `,
                 },
               },
               required: ["query"],
@@ -278,7 +298,9 @@ const getQuestionsController = async (req, res) => {
     const userId = req.body.userId || "default_user";
 
     if (!userMessage) {
-      return res.status(400).json("Invalid request. Please provide a question.");
+      return res
+        .status(400)
+        .json("Invalid request. Please provide a question.");
     }
 
     // Initialize user conversation history if not exists
@@ -304,10 +326,14 @@ const getQuestionsController = async (req, res) => {
       max_tokens: 2,
     });
 
-    const ans = openaiResponse.choices[0]?.message?.content?.trim().toLowerCase();
+    const ans = openaiResponse.choices[0]?.message?.content
+      ?.trim()
+      .toLowerCase();
     if (ans === "yes") {
       conversationHistory.delete(userId); // End conversation
-      return res.status(200).json("Thank you for using Fusion Assistant 😊.\n\n Have a nice day!");
+      return res
+        .status(200)
+        .json("Thank you for using Fusion Assistant 😊.\n\n Have a nice day!");
     }
 
     // Step 2: Generate SQL query
@@ -315,7 +341,9 @@ const getQuestionsController = async (req, res) => {
     console.log("Final SQL Query:", sqlQuery);
 
     if (!sqlQuery) {
-      return res.status(200).json("I'm unable to generate a SQL query for your request.");
+      return res
+        .status(200)
+        .json("I'm unable to generate a SQL query for your request.");
     }
 
     // Step 3: Execute SQL query
@@ -334,6 +362,10 @@ const getQuestionsController = async (req, res) => {
           content: JSON.stringify(result),
           name: "askDatabase",
         },
+        {
+          role: "user",
+          content: `Do **not** include any programming code or Python examples.`,
+        },
       ],
     });
 
@@ -342,8 +374,80 @@ const getQuestionsController = async (req, res) => {
     // Add assistant response to conversation history
     userConversation.push({ role: "assistant", content: finalAnswer });
 
-    return res.status(200).json(finalAnswer);
+    // Step 5: Check if the user wants to count or compare data
+    const checkComparisonResponse = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: `Does the following message indicate that the user wants to count or compare data?
+      \n\nMessage: "${userMessage}"
+      \n\nReturn only 'yes' or 'no'.`,
+        },
+      ],
+      max_tokens: 2,
+    });
 
+    const isComparison = checkComparisonResponse.choices[0]?.message?.content
+      .trim()
+      .toLowerCase();
+
+    let chartType = "";
+
+    if (isComparison === "yes") {
+      const chartTypes = ["bar", "line", "pie", "area", "doughnut"];
+      // Check if userMessage contains a chart type
+      const detectedChartType = chartTypes.find((type) =>
+        userMessage.toLowerCase().includes(type)
+      );
+
+      if (detectedChartType) {
+        chartType = detectedChartType;
+      } else {
+        // Step 6: Determine the chart type
+        const chartTypeResponse = await client.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: `Based on the following data response, suggest the most suitable chart type:
+        \n\nResponse: ${finalAnswer}
+        \n\nThe possible chart types are: bar, line, pie, area and doughnut.
+        \n\nReturn only one chart type as a single word from the given options, without any explanation.`,
+            },
+          ],
+        });
+        chartType =
+          chartTypeResponse.choices[0]?.message?.content.toLowerCase() || "";
+      }
+
+      // Step 2: Generate chart data
+      // const chartDataResponse = await client.chat.completions.create({
+      //   model: "gpt-4o",
+      //   messages: [
+      //     {
+      //       role: "user",
+      //       content: `Convert the following response into structured chart data in JSON format:
+      //       Response: ${finalAnswer}
+      //       The format should be:
+      //       {
+      //         "labels": ["Category1", "Category2", ...],
+      //         "datasets": [
+      //           {
+      //             "label": "Dataset Name",
+      //             "data": [value1, value2, ...]
+      //           }
+      //         ]
+      //       }
+      //       Ensure the data is correctly structured for visualization. Return only the valid JSON object, with no extra text.`,
+      //     },
+      //   ],
+      // });
+      // let chartData = chartDataResponse.choices[0].message.content.trim();
+      // console.log('chartData---//****', chartData)
+    }
+
+    return res.status(200).json({ data: finalAnswer, chartData: result, chartType });
   } catch (error) {
     return res.status(500).send(error.message);
   }
