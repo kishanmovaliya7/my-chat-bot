@@ -181,7 +181,7 @@ async function getDatabaseInfo() {
     //   FROM INFORMATION_SCHEMA.TABLES 
     //   WHERE TABLE_TYPE = 'BASE TABLE'
     // `);
-    const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fact_premium', 'dim_claims') and TABLE_SCHEMA='dwh'`);
+    const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fct_policy', 'fact_premium', 'dim_claims', 'fact_claims_dtl') and TABLE_SCHEMA='dwh'`);
     
     const data= result ?? [];
     

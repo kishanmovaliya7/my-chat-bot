@@ -31,7 +31,7 @@ const config = {
     }
 };
 
-const poolPromise = new sql.ConnectionPool(process.env.DB_CONNECTION_STRING)
+const poolPromise = new sql.ConnectionPool(config)
     .connect()
     .then(pool => {
         console.log("Connected to MSSQL with Pooling");
@@ -47,7 +47,7 @@ let poolConnectionPromise;
 const getPool = async () => {
     if (!poolConnectionPromise) {
         try {
-            poolConnectionPromise = new sql.ConnectionPool(process.env.DB_CONNECTION_STRING);
+            poolConnectionPromise = new sql.ConnectionPool(config);
             await poolConnectionPromise.connect();
             console.log('✅ Database connected successfully');
         } catch (error) {
@@ -119,7 +119,7 @@ const createBotReportTable = async (tableName = 'botreportsData') => {
 // Function to fetch database schema
 async function getDatabaseInfo() {
     try {
-        const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fact_premium', 'dim_claims') and TABLE_SCHEMA='dwh'`);
+        const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fct_policy', 'fact_premium', 'dim_claims', 'fact_claims_dtl') and TABLE_SCHEMA='dwh'`);
 
         const data = result ?? [];
 
@@ -235,7 +235,7 @@ const runAllCronJobs = async () => {
                     };
 
                     console.log('schedule email sending started----', process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL);
-                    await axios.post(`${process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL}/api/send-email?code=pnIYInY7qPQzUo5micHXsJYb6pm6C3MRZoqX7czvoBh2AzFurW9PNw%3D%3D`, data);
+                    await axios.post(`${process.env.AZURE_CHATBOT_SCHEDULER_BASE_URL}/api/send-email?code=${process.env.AZURE_CHATBOT_SCHEDULER_FUNCTION_KEY}`, data);
                 },
                 { name: `Schedule-${iterator?.reportName}`, timezone: 'America/New_York' }
             );

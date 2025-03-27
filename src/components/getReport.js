@@ -35,10 +35,10 @@ const { generateSQl } = require('./getTableDataFromQuery');
 // module.exports = { getReportData };
 
 async function getReportData(selectedValues) {
-    const { reportType, period, Business, Currency, field } = selectedValues;    
-    
+    const { reportType, period, Business, Currency, field } = selectedValues;
+
     const ReportLength = reportType?.split(',')?.length;
-    const userMessage = `Create a ${ ReportLength > 1 ? 'join sql query using unique field from' + reportType + 'tables' : 'sql query from' + reportType + 'table' } and Include a WHERE clause with a ${ period?.startDate && `Start Date greater then equal to ${ period?.startDate }` } ${ period?.endDate && `, End Date less then equal to ${ period?.endDate }` } ${ (Business?.business) && `, classof_business_name is ${ Business?.business }` } ${ (Currency && !reportType.includes('policy')) && `, currency_code is ${ Currency }` }  and return only this ${ field } Ignore the filter columns are not exact match with DB schema. `;
+    const userMessage = `Create a ${ReportLength > 1 ? 'join sql query using unique field from ' + reportType + ' tables' : 'sql query from' + reportType + 'table'} and Include a WHERE clause with a ${period?.startDate && `Start Date greater then equal to ${period?.startDate}`} ${period?.endDate && `, End Date less then equal to ${period?.endDate}`} ${(Business?.business) && `, classof_business_name is ${Business?.business}`} ${(Currency && !reportType.includes('policy')) && `, currency_code is ${Currency}`}  and return only this ${field} Ignore the filter columns are not exact match with DB schema. `;
 
     const sqlQuery = await generateSQl(userMessage);
     try {
