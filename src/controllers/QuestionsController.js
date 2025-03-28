@@ -262,7 +262,7 @@ const generateSQL = async (conversation) => {
                   description: `SQL query extracting info to answer the user's question.
                     Generate an SQL query to return categorical data and their corresponding counts, suitable for a chart.
                     The query should include:
-                    - A categorical column (preferably country_code instead of country)
+                    - A categorical column
                     - A numerical count
                     SQL should be written using this database schema:
                     ${schemaString}
@@ -395,7 +395,7 @@ const getQuestionsController = async (req, res) => {
     let chartType = "";
 
     if (isComparison === "yes") {
-      const chartTypes = ["bar", "line", "pie", "area", "doughnut"];
+      const chartTypes = ["geo", "bar", "line", "pie", "area", "doughnut"];
       // Check if userMessage contains a chart type
       const detectedChartType = chartTypes.find((type) =>
         userMessage.toLowerCase().includes(type)
@@ -411,16 +411,42 @@ const getQuestionsController = async (req, res) => {
             {
               role: "user",
               content: `Based on the following data response, suggest the most suitable chart type:
-        \n\nResponse: ${finalAnswer}
-        \n\nThe possible chart types are: bar, line, pie, area and doughnut.
-        \n\nReturn only one chart type as a single word from the given options, without any explanation.`,
+              \n\nResponse: ${finalAnswer}
+              \n\nThe possible chart types are: geo, bar, line, pie, area, and doughnut.
+              \n\nIf the data response contains country names, country codes, or any geographical locations, return only "geo". Examples of country-related data include: "USA, India, France", "United States, Canada, Germany", "IN, US, FR", etc.
+              \n\nOtherwise, return the most appropriate chart type from the given options.
+              \n\nReturn only one chart type as a single word from the given options, without any explanation.`,
             },
-          ],
+          ]
         });
         chartType =
           chartTypeResponse.choices[0]?.message?.content.toLowerCase() || "";
       }
 
+      if (chartType === "geo") {
+        const chartDataResponse = await client.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            // {
+            //   role: "user",
+            //   content: `Format country names correctly and append their ISO 3166-1 code in parentheses.
+            //   Example: "United States (US)".  
+            //   Input: ${JSON.stringify(result, null, 2)}  
+            //   Return only the updated object in this format, no explanations.`,
+            // }
+            {
+              role: "user",
+              content: `Convert country names to their ISO 3166-1 alpha-2 codes.  
+              Replace the country name with its ISO code.  
+              Input: ${JSON.stringify(result, null, 2)}  
+              Return only the updated valid JSON object, no explanations.`,
+            },
+          ],
+        });
+        const ans = chartDataResponse.choices[0].message.content.trim();
+        const chartData = JSON.parse(ans);
+        return res.status(200).json({ data: finalAnswer, chartData, chartType });
+      }
       // Step 2: Generate chart data
       // const chartDataResponse = await client.chat.completions.create({
       //   model: "gpt-4o",
