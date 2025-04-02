@@ -377,6 +377,7 @@ const getQuestionsController = async (req, res) => {
     // Step 5: Check if the user wants to count or compare data
     const checkComparisonResponse = await client.chat.completions.create({
       model: "gpt-4o",
+      max_tokens: 2,
       messages: [
         {
           role: "user",
@@ -385,7 +386,6 @@ const getQuestionsController = async (req, res) => {
       \n\nReturn only 'yes' or 'no'.`,
         },
       ],
-      max_tokens: 2,
     });
 
     const isComparison = checkComparisonResponse.choices[0]?.message?.content
@@ -407,6 +407,7 @@ const getQuestionsController = async (req, res) => {
         // Step 6: Determine the chart type
         const chartTypeResponse = await client.chat.completions.create({
           model: "gpt-4o",
+          max_tokens: 10,
           messages: [
             {
               role: "user",
@@ -447,30 +448,6 @@ const getQuestionsController = async (req, res) => {
         const chartData = JSON.parse(ans);
         return res.status(200).json({ data: finalAnswer, chartData, chartType });
       }
-      // Step 2: Generate chart data
-      // const chartDataResponse = await client.chat.completions.create({
-      //   model: "gpt-4o",
-      //   messages: [
-      //     {
-      //       role: "user",
-      //       content: `Convert the following response into structured chart data in JSON format:
-      //       Response: ${finalAnswer}
-      //       The format should be:
-      //       {
-      //         "labels": ["Category1", "Category2", ...],
-      //         "datasets": [
-      //           {
-      //             "label": "Dataset Name",
-      //             "data": [value1, value2, ...]
-      //           }
-      //         ]
-      //       }
-      //       Ensure the data is correctly structured for visualization. Return only the valid JSON object, with no extra text.`,
-      //     },
-      //   ],
-      // });
-      // let chartData = chartDataResponse.choices[0].message.content.trim();
-      // console.log('chartData---//****', chartData)
     }
 
     return res.status(200).json({ data: finalAnswer, chartData: result, chartType });
