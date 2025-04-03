@@ -124,7 +124,7 @@
 //       if (ans.toLowerCase() === "no") {
 //         const sqlQuery = await generateSQl(userMessage);
 //         console.log("sqlQuery----",sqlQuery);
-        
+
 //         if (sqlQuery) {
 //           const result = await askDatabase(sqlQuery);
 //           const completionResponse = await client.chat.completions.create({
@@ -182,21 +182,21 @@ async function getDatabaseInfo() {
     //   WHERE TABLE_TYPE = 'BASE TABLE'
     // `);
     const result = await SQLquery(`SELECT  TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME in ('dim_policy', 'fct_policy', 'fact_premium', 'dim_claims', 'fact_claims_dtl') and TABLE_SCHEMA='dwh'`);
-    
+
     const data= result ?? [];
-    
+
     const tables = data?.reduce((acc, cur) => {
-        const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
+      const tableName = `${cur.TABLE_SCHEMA}.${cur.TABLE_NAME}`
         if(acc?.[tableName]) {
             acc[tableName] = [...acc[tableName], `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
-        } else {
+      } else {
             acc[tableName] = [ `${cur.COLUMN_NAME} ${cur.DATA_TYPE}${cur.DATA_TYPE === 'varchar' ? "(MAX)" :""}`]
-        }
-        return acc;
+      }
+      return acc;
     }, {})
-    
+
     const tableResult = Object.entries(tables)?.map(table => `create table ${table[0]} (${table[1].join(', ')})`);
-  
+
     return tableResult;
   } catch (error) {
     console.error('Error fetching database info:', error.message);
@@ -225,6 +225,29 @@ const generateSQL = async (conversation) => {
     const schemaDict = await getDatabaseInfo();
     const schemaString = formatDatabaseSchemaInfo(schemaDict);
 
+    //     const promptDescription = `
+    //   Generate an SQL query based on the user's question, always including necessary joins:
+    //   - For policies, join 'fct_policy' and 'dim_policy' on 'policy_number'.
+    //   - For claims, join 'dim_claims' and 'fct_claims_dtl' on 'policy_number'.
+    //   - For premiums, use 'fact_premium' (no join).
+    //   Use the schema below: ${schemaString}. Return the query in plain text.
+    // `;
+
+
+    const promptDescription = `
+    Based on the user's question, generate an SQL query. The query should always include necessary table joins based on the following rules:
+
+    - For a policy-related question, join 'fct_policy' and 'dim_policy' on 'policy_number'.
+
+    SQL should be written using the database schema below:
+    ${schemaString}
+
+    The SQL query should be returned in plain text, not in JSON. Always include the appropriate table joins in the query.
+
+    Here are some examples of questions and the expected query structure:
+    - "first policy record": SELECT TOP 1 * FROM dwh.fct_policy f JOIN dwh.dim_policy d ON f.policy_number = d.policy_number;
+    `;
+
     const completion = await client.chat.completions.create({
       model: "gpt-4o",
       messages: conversation,
@@ -242,12 +265,13 @@ const generateSQL = async (conversation) => {
               properties: {
                 query: {
                   type: "string",
-                  description: `
-                        SQL query extracting info to answer the user's question.
-                        SQL should be written using this database schema:
-                        ${schemaString}
-                          The query should be returned in plain text, not in JSON
-                        `,
+                  description: promptDescription
+                  //  `
+                  //       SQL query extracting info to answer the user's question.
+                  //       SQL should be written using this database schema:
+                  //       ${schemaString}
+                  //         The query should be returned in plain text, not in JSON
+                  //       `,
                 },
               },
               required: ["query"],
@@ -274,8 +298,12 @@ const generateSQL = async (conversation) => {
 // Main API Controller with conversation tracking
 const getQuestionsController = async (req, res) => {
   try {
-    const userMessage = req.body.question;
-    const userId = req.body.userId || "default_user";
+    const { question: userMessage, userId = "default_user", clear } = req.body;
+
+    if (clear) {
+      conversationHistory.set(userId, []);
+      return res.status(200).json("Conversation history cleared.");
+    }
 
     if (!userMessage) {
       return res.status(400).json("Invalid request. Please provide a question.");
@@ -288,7 +316,7 @@ const getQuestionsController = async (req, res) => {
 
     // Retrieve user's conversation history
     const userConversation = conversationHistory.get(userId);
-
+    
     // Add the latest user message to conversation history
     userConversation.push({ role: "user", content: userMessage });
 
@@ -315,7 +343,7 @@ const getQuestionsController = async (req, res) => {
     console.log("Final SQL Query:", sqlQuery);
 
     if (!sqlQuery) {
-      return res.status(200).json("I'm unable to generate a SQL query for your request.");
+      return res.status(200).json("Unable to process the request. Please try again.");
     }
 
     // Step 3: Execute SQL query
@@ -323,16 +351,22 @@ const getQuestionsController = async (req, res) => {
     if (!result || result.length === 0) {
       return res.status(200).json("No records found.");
     }
+    // console.log("result*---", result)
 
     // Step 4: Format the response using GPT
     const completionResponse = await client.chat.completions.create({
       model: "gpt-4o",
+      temperature: 1,
       messages: [
         ...userConversation,
         {
           role: "function",
           content: JSON.stringify(result),
           name: "askDatabase",
+        },
+        {
+          role: "user",
+          content: "Do **not** include any troubleshooting steps.",
         },
       ],
     });
